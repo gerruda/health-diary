@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 
 // Custom hook for health tracker functionality
 const useHealthTracker = () => {
@@ -46,6 +46,12 @@ const useHealthTracker = () => {
         localStorage.setItem('weightConditions', JSON.stringify(weightConditions));
     }, [weightConditions]);
 
+    // Check if entry exists for today
+    const hasEntryForToday = useCallback(() => {
+        const today = new Date().toISOString().split('T')[0];
+        return entries.some(entry => entry.date === today);
+    }, [entries]);
+
     // Set up reminder check
     useEffect(() => {
         if (!reminderEnabled) return;
@@ -61,7 +67,7 @@ const useHealthTracker = () => {
 
         const interval = setInterval(checkReminder, 60000); // Check every minute
         return () => clearInterval(interval);
-    }, [reminderTime, reminderEnabled]);
+    }, [reminderTime, reminderEnabled, hasEntryForToday]);
 
     // Calculate sleep duration
     const calculateSleepDuration = useCallback(() => {
@@ -81,15 +87,8 @@ const useHealthTracker = () => {
             end.setDate(end.getDate() + 1);
         }
 
-        const duration = Math.round((end - start) / (1000 * 60 * 60));
-        return duration;
+        return Math.round((end - start) / (1000 * 60 * 60));
     }, [sleepStart, sleepEnd]);
-
-    // Check if entry exists for today
-    const hasEntryForToday = useCallback(() => {
-        const today = new Date().toISOString().split('T')[0];
-        return entries.some(entry => entry.date === today);
-    }, [entries]);
 
     // Handle date change
     const handleDateChange = useCallback((newDate) => {
@@ -329,6 +328,7 @@ const useHealthTracker = () => {
         exportEndDate,
 
         // Functions
+        calculateSleepDuration,
         setDate: handleDateChange,
         setSleepStart,
         setSleepEnd,
@@ -426,6 +426,7 @@ const Chart = React.memo(({ data, title, color = "blue" }) => {
 });
 
 // Main Component
+// В компоненте App
 export default function App() {
     const {
         // State
@@ -451,6 +452,7 @@ export default function App() {
         exportEndDate,
 
         // Functions
+        calculateSleepDuration,
         setDate,
         setSleepStart,
         setSleepEnd,
