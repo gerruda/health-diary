@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Дневник здоровья</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1><i class="fas fa-heartbeat"></i> Дневник здоровья</h1>
+        <div class="date-display" id="current-date"></div>
+    </header>
+
+    <div class="tabs">
+        <button class="tab active" data-tab="daily">Ежедневный ввод</button>
+        <button class="tab" data-tab="history">История</button>
+        <button class="tab" data-tab="analytics">Аналитика</button>
+        <button class="tab" data-tab="settings">Настройки</button>
+    </div>
+
+    <!-- Вкладка ежедневного ввода -->
+    <div class="tab-content active" id="daily-tab">
+        <form id="daily-form">
+            <div class="form-grid">
+
+                <div class="form-group">
+                    <label for="pulse"><i class="fas fa-heart"></i> Пульс (уд/мин):</label>
+                    <input type="number" id="pulse" min="40" max="200">
+                </div>
+
+                <div class="form-group">
+                    <label for="sleep"><i class="fas fa-bed"></i> Длительность сна:</label>
+                    <div class="time-input">
+                        <input type="number" id="sleep-hours" placeholder="Ч" min="0" max="24" value="7">
+                        <span>:</span>
+                        <input type="number" id="sleep-minutes" placeholder="М" min="0" max="59" value="30">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="energy"><i class="fas fa-sun"></i> Утренняя энергия:</label>
+                    <div class="rating">
+                        <input type="radio" id="energy-1" name="energy" value="1">
+                        <label for="energy-1">1</label>
+                        <input type="radio" id="energy-2" name="energy" value="2" checked>
+                        <label for="energy-2">2</label>
+                        <input type="radio" id="energy-3" name="energy" value="3">
+                        <label for="energy-3">3</label>
+                        <input type="radio" id="energy-4" name="energy" value="4">
+                        <label for="energy-4">4</label>
+                        <input type="radio" id="energy-5" name="energy" value="5">
+                        <label for="energy-5">5</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="weight"><i class="fas fa-weight-scale"></i> Вес (кг):</label>
+                    <input type="number" id="weight" step="0.1" min="30" max="200">
+                </div>
+
+                <div class="form-group">
+                    <label for="weight-condition">Условия взвешивания:</label>
+                    <div class="combo-input">
+                        <input type="text" id="weight-condition" list="condition-list" placeholder="Выберите или введите">
+                        <datalist id="condition-list"></datalist>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="steps"><i class="fas fa-shoe-prints"></i> Шаги:</label>
+                    <input type="number" id="steps" min="0" max="50000">
+                </div>
+
+                <div class="form-group">
+                    <label for="calories"><i class="fas fa-fire"></i> Калории (ккал):</label>
+                    <input type="number" id="calories" min="0" max="10000">
+                </div>
+
+                <div class="form-group">
+                    <label for="alcohol"><i class="fas fa-wine-glass"></i> Алкоголь:</label>
+                    <select id="alcohol">
+                        <option value="no">Нет</option>
+                        <option value="little">Мало (1-2 порции)</option>
+                        <option value="medium">Умеренно (3-4 порции)</option>
+                        <option value="much">Много (5+ порций)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="workout"><i class="fas fa-dumbbell"></i> Тренировка:</label>
+                    <select id="workout">
+                        <option value="none">Нет</option>
+                        <option value="light">Легкая</option>
+                        <option value="medium">Средняя</option>
+                        <option value="hard">Интенсивная</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="mood"><i class="fas fa-smile"></i> Настроение вечером:</label>
+                    <select id="mood">
+                        <option value="excellent">Отличное 😄</option>
+                        <option value="good">Хорошее 🙂</option>
+                        <option value="normal">Нормальное 😐</option>
+                        <option value="bad">Плохое 🙁</option>
+                        <option value="awful">Ужасное 😞</option>
+                    </select>
+                </div>
+
+                <div class="form-group full-width">
+                    <label for="notes"><i class="fas fa-edit"></i> Заметки:</label>
+                    <textarea id="notes" rows="3" placeholder="Опишите свое состояние, самочувствие..."></textarea>
+                </div>
+            </div>
+
+            <div class="form-buttons">
+                <button type="submit" class="btn-save"><i class="fas fa-save"></i> Сохранить</button>
+                <button type="button" class="btn-add" id="add-another-weight"><i class="fas fa-plus"></i> Добавить еще одно взвешивание</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Вкладка истории -->
+    <div class="tab-content" id="history-tab">
+        <div class="history-controls">
+            <input type="date" id="history-date" class="date-picker">
+            <button id="export-btn" class="btn-export"><i class="fas fa-file-excel"></i> Экспорт в Excel</button>
+        </div>
+        <div id="history-entries"></div>
+    </div>
+
+    <!-- Вкладка аналитики -->
+    <div class="tab-content" id="analytics-tab">
+        <div class="chart-container">
+            <canvas id="health-chart"></canvas>
+        </div>
+        <div class="chart-controls">
+            <select id="chart-type">
+                <option value="weight">Вес</option>
+                <option value="pulse">Пульс</option>
+                <option value="sleep">Сон</option>
+                <option value="energy">Энергия</option>
+                <option value="steps">Шаги</option>
+                <option value="mood">Настроение</option>
+            </select>
+            <input type="date" id="chart-start-date">
+            <input type="date" id="chart-end-date">
+            <button id="update-chart">Обновить график</button>
+        </div>
+    </div>
+
+    <!-- Вкладка настроек -->
+    <div class="tab-content" id="settings-tab">
+        <div class="card">
+            <h2><i class="fas fa-bell"></i> Напоминания</h2>
+            <div class="reminder-settings">
+                <div class="form-group">
+                    <label for="reminder-time">Время напоминания:</label>
+                    <input type="time" id="reminder-time" value="20:00">
+                </div>
+                <div class="form-group">
+                    <label for="reminder-active">
+                        <input type="checkbox" id="reminder-active" checked>
+                        Активировать напоминания
+                    </label>
+                </div>
+                <button id="save-settings">Сохранить настройки</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для редактирования -->
+<div class="modal" id="edit-modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Редактирование записи</h2>
+        <form id="edit-form"></form>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
