@@ -1,11 +1,11 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 
 // Custom hook for health tracker functionality
 const useHealthTracker = () => {
     // State for form fields
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-    const [sleepStart, setSleepStart] = useState('23:00');
-    const [sleepEnd, setSleepEnd] = useState('07:00');
+    const [sleepHours, setSleepHours] = useState(8);
+    const [sleepMinutes, setSleepMinutes] = useState(0);
     const [sleepQuality, setSleepQuality] = useState('good');
     const [morningEnergy, setMorningEnergy] = useState(5);
     const [weightEntries, setWeightEntries] = useState([{ value: '', condition: '' }]);
@@ -16,6 +16,7 @@ const useHealthTracker = () => {
     const [eveningMood, setEveningMood] = useState(5);
     const [workout, setWorkout] = useState(false);
     const [notes, setNotes] = useState('');
+    const [restingPulse, setRestingPulse] = useState('');
     const [entries, setEntries] = useState([]);
     const [activeTab, setActiveTab] = useState('entry');
     const [reminderTime, setReminderTime] = useState('09:00');
@@ -69,27 +70,6 @@ const useHealthTracker = () => {
         return () => clearInterval(interval);
     }, [reminderTime, reminderEnabled, hasEntryForToday]);
 
-    // Calculate sleep duration
-    const calculateSleepDuration = useCallback(() => {
-        if (!sleepStart || !sleepEnd) return 0;
-
-        const [startHours, startMinutes] = sleepStart.split(':').map(Number);
-        const [endHours, endMinutes] = sleepEnd.split(':').map(Number);
-
-        let start = new Date();
-        start.setHours(startHours, startMinutes, 0);
-
-        let end = new Date();
-        end.setHours(endHours, endMinutes, 0);
-
-        // If end time is before start time (overnight sleep)
-        if (end < start) {
-            end.setDate(end.getDate() + 1);
-        }
-
-        return Math.round((end - start) / (1000 * 60 * 60));
-    }, [sleepStart, sleepEnd]);
-
     // Handle date change
     const handleDateChange = useCallback((newDate) => {
         setDate(newDate);
@@ -97,8 +77,8 @@ const useHealthTracker = () => {
         // Load existing data for selected date
         const existingEntry = entries.find(entry => entry.date === newDate);
         if (existingEntry) {
-            setSleepStart(existingEntry.sleepStart || '23:00');
-            setSleepEnd(existingEntry.sleepEnd || '07:00');
+            setSleepHours(existingEntry.sleepHours || 8);
+            setSleepMinutes(existingEntry.sleepMinutes || 0);
             setSleepQuality(existingEntry.sleepQuality || 'good');
             setMorningEnergy(existingEntry.morningEnergy || 5);
             setWeightEntries(existingEntry.weightEntries || [{ value: '', condition: '' }]);
@@ -108,10 +88,11 @@ const useHealthTracker = () => {
             setEveningMood(existingEntry.eveningMood || 5);
             setWorkout(existingEntry.workout || false);
             setNotes(existingEntry.notes || '');
+            setRestingPulse(existingEntry.restingPulse || '');
         } else {
             // Reset form for new date
-            setSleepStart('23:00');
-            setSleepEnd('07:00');
+            setSleepHours(8);
+            setSleepMinutes(0);
             setSleepQuality('good');
             setMorningEnergy(5);
             setWeightEntries([{ value: '', condition: '' }]);
@@ -121,6 +102,7 @@ const useHealthTracker = () => {
             setEveningMood(5);
             setWorkout(false);
             setNotes('');
+            setRestingPulse('');
         }
     }, [entries]);
 
@@ -155,12 +137,15 @@ const useHealthTracker = () => {
     const handleSubmit = useCallback((e) => {
         e.preventDefault();
 
+        const totalSleep = parseFloat((sleepHours + sleepMinutes / 60).toFixed(2));
+
         const newEntry = {
             date,
-            sleepStart,
-            sleepEnd,
+            sleepHours,
+            sleepMinutes,
             sleepQuality,
-            sleepDuration: calculateSleepDuration(),
+            sleepDuration: totalSleep,
+            restingPulse: parseFloat(restingPulse),
             morningEnergy,
             weightEntries,
             steps: parseInt(steps),
@@ -183,8 +168,8 @@ const useHealthTracker = () => {
             // Add new entry
             setEntries([...entries, newEntry]);
         }
-    }, [date, sleepStart, sleepEnd, sleepQuality, morningEnergy, weightEntries,
-        steps, calories, alcohol, eveningMood, workout, notes, entries, calculateSleepDuration]);
+    }, [date, sleepHours, sleepMinutes, sleepQuality, morningEnergy, weightEntries,
+        steps, calories, alcohol, eveningMood, workout, notes, entries, restingPulse]);
 
     // Export data to CSV
     const exportToCSV = useCallback(() => {
@@ -199,10 +184,11 @@ const useHealthTracker = () => {
         // Add header
         csvRows.push([
             'Дата',
-            'Время сна (начало)',
-            'Время сна (конец)',
+            'Сон (часы)',
+            'Сон (минуты)',
             'Качество сна',
             'Длительность сна',
+            'Пульс в покое',
             'Утренняя энергия',
             'Вес',
             'Условия взвешивания',
@@ -216,15 +202,15 @@ const useHealthTracker = () => {
 
         // Add data rows
         filteredEntries.forEach(entry => {
-            // Add each weight entry as a separate row
             if (entry.weightEntries && entry.weightEntries.length > 0) {
                 entry.weightEntries.forEach(weightEntry => {
                     csvRows.push([
                         entry.date,
-                        entry.sleepStart,
-                        entry.sleepEnd,
+                        entry.sleepHours,
+                        entry.sleepMinutes,
                         entry.sleepQuality,
                         entry.sleepDuration,
+                        entry.restingPulse,
                         entry.morningEnergy,
                         weightEntry.value,
                         weightEntry.condition,
@@ -237,13 +223,13 @@ const useHealthTracker = () => {
                     ].join(','));
                 });
             } else {
-                // Add single row if no weight entries
                 csvRows.push([
                     entry.date,
-                    entry.sleepStart,
-                    entry.sleepEnd,
+                    entry.sleepHours,
+                    entry.sleepMinutes,
                     entry.sleepQuality,
                     entry.sleepDuration,
+                    entry.restingPulse,
                     entry.morningEnergy,
                     '',
                     '',
@@ -307,8 +293,8 @@ const useHealthTracker = () => {
     return {
         // State
         date,
-        sleepStart,
-        sleepEnd,
+        sleepHours,
+        sleepMinutes,
         sleepQuality,
         morningEnergy,
         weightEntries,
@@ -319,6 +305,7 @@ const useHealthTracker = () => {
         eveningMood,
         workout,
         notes,
+        restingPulse,
         entries,
         activeTab,
         reminderTime,
@@ -328,10 +315,9 @@ const useHealthTracker = () => {
         exportEndDate,
 
         // Functions
-        calculateSleepDuration,
         setDate: handleDateChange,
-        setSleepStart,
-        setSleepEnd,
+        setSleepHours,
+        setSleepMinutes,
         setSleepQuality,
         setMorningEnergy,
         setWeightEntries,
@@ -341,6 +327,7 @@ const useHealthTracker = () => {
         setEveningMood,
         setWorkout,
         setNotes,
+        setRestingPulse,
         setActiveTab,
         setReminderTime,
         setReminderEnabled,
@@ -369,7 +356,9 @@ const Chart = React.memo(({ data, title, color = "blue" }) => {
         if (!acc[entry.date]) {
             acc[entry.date] = { date: entry.date, values: [] };
         }
-        acc[entry.date].values.push(entry);
+        if (entry.value !== null && entry.value !== undefined && !isNaN(entry.value)) {
+            acc[entry.date].values.push(entry);
+        }
         return acc;
     }, {});
 
@@ -390,7 +379,7 @@ const Chart = React.memo(({ data, title, color = "blue" }) => {
     const maxValue = Math.max(...values);
     const range = maxValue - minValue;
 
-    // Calculate bar height (with a minimum height if range is zero)
+    // Calculate bar height (with minimum height if range is zero)
     const getBarHeight = (value) => {
         if (range === 0) return 50;
         return Math.max(10, 100 * ((value - minValue) / range));
@@ -426,13 +415,12 @@ const Chart = React.memo(({ data, title, color = "blue" }) => {
 });
 
 // Main Component
-// В компоненте App
 export default function App() {
     const {
         // State
         date,
-        sleepStart,
-        sleepEnd,
+        sleepHours,
+        sleepMinutes,
         sleepQuality,
         morningEnergy,
         weightEntries,
@@ -443,6 +431,7 @@ export default function App() {
         eveningMood,
         workout,
         notes,
+        restingPulse,
         entries,
         activeTab,
         reminderTime,
@@ -452,10 +441,9 @@ export default function App() {
         exportEndDate,
 
         // Functions
-        calculateSleepDuration,
         setDate,
-        setSleepStart,
-        setSleepEnd,
+        setSleepHours,
+        setSleepMinutes,
         setSleepQuality,
         setMorningEnergy,
         setWeightEntries,
@@ -465,6 +453,7 @@ export default function App() {
         setEveningMood,
         setWorkout,
         setNotes,
+        setRestingPulse,
         setActiveTab,
         setReminderTime,
         setReminderEnabled,
@@ -525,34 +514,58 @@ export default function App() {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-4">
+                                    <h3 className="text-lg font-bold text-gray-700">❤️ Пульс в покое</h3>
+
+                                    <div>
+                                        <label className="block text-gray-700 font-medium mb-2">Пульс в покое (ударов/мин)</label>
+                                        <input
+                                            type="number"
+                                            value={restingPulse}
+                                            onChange={(e) => setRestingPulse(e.target.value)}
+                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            placeholder="Введите пульс"
+                                            min="0"
+                                            max="200"
+                                            step="1"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
                                     <h3 className="text-lg font-bold text-gray-700">🌙 Сон</h3>
 
                                     <div>
-                                        <label className="block text-gray-700 font-medium mb-2">Время сна (начало)</label>
-                                        <div className="flex">
-                                            <input
-                                                type="time"
-                                                value={sleepStart}
-                                                onChange={(e) => setSleepStart(e.target.value)}
-                                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                            />
+                                        <label className="block text-gray-700 font-medium mb-2">Время сна</label>
+                                        <div className="flex space-x-4">
+                                            <div className="flex-1">
+                                                <input
+                                                    type="number"
+                                                    value={sleepHours}
+                                                    onChange={(e) => setSleepHours(parseInt(e.target.value) || 0)}
+                                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                    min="0"
+                                                    max="24"
+                                                />
+                                                <p className="mt-1 text-sm text-gray-500">Часы</p>
+                                            </div>
+                                            <div className="flex-1">
+                                                <input
+                                                    type="number"
+                                                    value={sleepMinutes}
+                                                    onChange={(e) => setSleepMinutes(parseInt(e.target.value) || 0)}
+                                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                    min="0"
+                                                    max="59"
+                                                />
+                                                <p className="mt-1 text-sm text-gray-500">Минуты</p>
+                                            </div>
                                         </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-gray-700 font-medium mb-2">Время сна (конец)</label>
-                                        <input
-                                            type="time"
-                                            value={sleepEnd}
-                                            onChange={(e) => setSleepEnd(e.target.value)}
-                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                        />
                                     </div>
 
                                     <div>
                                         <label className="block text-gray-700 font-medium mb-2">Длительность сна</label>
                                         <div className="p-3 border border-gray-300 rounded-lg bg-gray-50">
-                                            {calculateSleepDuration()} часов
+                                            {sleepHours} ч {sleepMinutes} мин
                                         </div>
                                     </div>
 
@@ -794,6 +807,10 @@ export default function App() {
                             <div>
                                 <Chart data={chartData.calories} title="🔥 Сожженные калории" color="amber" />
                             </div>
+
+                            <div>
+                                <Chart data={chartData.pulse} title="❤️ Пульс в покое" color="pink" />
+                            </div>
                         </div>
                     </div>
                 )}
@@ -830,7 +847,7 @@ export default function App() {
                                 className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-300 flex items-center justify-center"
                             >
                                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0l-4 4m4-4v12"></path>
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4-4m0 0l-4 4m4-4v12"></path>
                                 </svg>
                                 📥 Экспорт в CSV
                             </button>
@@ -848,6 +865,7 @@ export default function App() {
                                 <tr>
                                     <th className="py-3 px-4 text-left">📅 Дата</th>
                                     <th className="py-3 px-4 text-left">🌙 Сон</th>
+                                    <th className="py-3 px-4 text-left">❤️ Пульс</th>
                                     <th className="py-3 px-4 text-left">⚖️ Вес</th>
                                     <th className="py-3 px-4 text-left">👣 Шаги</th>
                                     <th className="py-3 px-4 text-left">🔥 Калории</th>
@@ -861,8 +879,8 @@ export default function App() {
                                         className="hover:bg-gray-50 cursor-pointer transition-colors duration-200"
                                         onClick={() => {
                                             setDate(entry.date);
-                                            setSleepStart(entry.sleepStart || '23:00');
-                                            setSleepEnd(entry.sleepEnd || '07:00');
+                                            setSleepHours(entry.sleepHours || 8);
+                                            setSleepMinutes(entry.sleepMinutes || 0);
                                             setSleepQuality(entry.sleepQuality || 'good');
                                             setMorningEnergy(entry.morningEnergy || 5);
                                             setWeightEntries(entry.weightEntries || [{ value: '', condition: '' }]);
@@ -872,14 +890,16 @@ export default function App() {
                                             setEveningMood(entry.eveningMood || 5);
                                             setWorkout(entry.workout || false);
                                             setNotes(entry.notes || '');
+                                            setRestingPulse(entry.restingPulse || '');
                                             setActiveTab('entry');
                                         }}
                                     >
                                         <td className="py-3 px-4">{new Date(entry.date).toLocaleDateString('ru-RU')}</td>
                                         <td className="py-3 px-4">
-                                            {entry.sleepStart} - {entry.sleepEnd}<br/>
-                                            {entry.sleepDuration}ч
+                                            {entry.sleepHours || 8}ч {entry.sleepMinutes || 0}м<br/>
+                                            {parseFloat((entry.sleepHours || 8) + (entry.sleepMinutes || 0) / 60).toFixed(1)} ч
                                         </td>
+                                        <td className="py-3 px-4">{entry.restingPulse || '-'} уд/мин</td>
                                         <td className="py-3 px-4">
                                             {entry.weightEntries && entry.weightEntries.length > 0 ? (
                                                 entry.weightEntries.map((weightEntry, i) => (
@@ -926,7 +946,7 @@ export default function App() {
                                 disabled={!reminderEnabled}
                             />
                             <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 00-18 0 9 9 0 0018 0z"></path>
                             </svg>
                         </div>
 
@@ -947,4 +967,3 @@ export default function App() {
         </div>
     );
 }
-
