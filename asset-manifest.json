@@ -1,10 +1,13 @@
 {
   "files": {
-    "main.js": "/health-diary%20/static/js/main.559755a8.js",
+    "main.css": "/health-diary%20/static/css/main.09429010.css",
+    "main.js": "/health-diary%20/static/js/main.7732cf98.js",
     "index.html": "/health-diary%20/index.html",
-    "main.559755a8.js.map": "/health-diary%20/static/js/main.559755a8.js.map"
+    "main.09429010.css.map": "/health-diary%20/static/css/main.09429010.css.map",
+    "main.7732cf98.js.map": "/health-diary%20/static/js/main.7732cf98.js.map"
   },
   "entrypoints": [
-    "static/js/main.559755a8.js"
+    "static/css/main.09429010.css",
+    "static/js/main.7732cf98.js"
   ]
 }
