@@ -1,8 +1,8 @@
 {
   "files": {
-    "main.js": "/health-diary/static/js/main.559755a8.js",
-    "index.html": "/health-diary/index.html",
-    "main.559755a8.js.map": "/health-diary/static/js/main.559755a8.js.map"
+    "main.js": "./static/js/main.559755a8.js",
+    "index.html": "./index.html",
+    "main.559755a8.js.map": "./static/js/main.559755a8.js.map"
   },
   "entrypoints": [
     "static/js/main.559755a8.js"
