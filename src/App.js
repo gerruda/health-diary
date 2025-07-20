@@ -5,8 +5,8 @@ import './App.css';
 const useHealthTracker = () => {
     // State for form fields
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-    const [sleepStart, setSleepStart] = useState('23:00');
-    const [sleepEnd, setSleepEnd] = useState('07:00');
+    const [sleepHours, setSleepHours] = useState(8);
+    const [sleepMinutes, setSleepMinutes] = useState(0);
     const [sleepQuality, setSleepQuality] = useState('good');
     const [morningEnergy, setMorningEnergy] = useState(5);
     const [weightEntries, setWeightEntries] = useState([{ value: '', condition: '' }]);
@@ -50,24 +50,8 @@ const useHealthTracker = () => {
 
     // Calculate sleep duration
     const calculateSleepDuration = useCallback(() => {
-        if (!sleepStart || !sleepEnd) return 0;
-
-        const [startHours, startMinutes] = sleepStart.split(':').map(Number);
-        const [endHours, endMinutes] = sleepEnd.split(':').map(Number);
-
-        let start = new Date();
-        start.setHours(startHours, startMinutes, 0);
-
-        let end = new Date();
-        end.setHours(endHours, endMinutes, 0);
-
-        // If end time is before start time (overnight sleep)
-        if (end < start) {
-            end.setDate(end.getDate() + 1);
-        }
-
-        return Math.round((end - start) / (1000 * 60 * 60 * 24) * 100) / 100;
-    }, [sleepStart, sleepEnd]);
+        return parseFloat((sleepHours + sleepMinutes / 60).toFixed(2));
+    }, [sleepHours, sleepMinutes]);
 
     // Check if entry exists for today
     const hasEntryForToday = useCallback(() => {
@@ -99,8 +83,8 @@ const useHealthTracker = () => {
         // Load existing data for selected date
         const existingEntry = entries.find(entry => entry.date === newDate);
         if (existingEntry) {
-            setSleepStart(existingEntry.sleepStart || '23:00');
-            setSleepEnd(existingEntry.sleepEnd || '07:00');
+            setSleepHours(existingEntry.sleepHours || 8);
+            setSleepMinutes(existingEntry.sleepMinutes || 0);
             setSleepQuality(existingEntry.sleepQuality || 'good');
             setMorningEnergy(existingEntry.morningEnergy || 5);
             setWeightEntries(existingEntry.weightEntries || [{ value: '', condition: '' }]);
@@ -113,8 +97,8 @@ const useHealthTracker = () => {
             setRestingPulse(existingEntry.restingPulse || '');
         } else {
             // Reset form for new date
-            setSleepStart('23:00');
-            setSleepEnd('07:00');
+            setSleepHours(8);
+            setSleepMinutes(0);
             setSleepQuality('good');
             setMorningEnergy(5);
             setWeightEntries([{ value: '', condition: '' }]);
@@ -159,12 +143,14 @@ const useHealthTracker = () => {
     const handleSubmit = useCallback((e) => {
         e.preventDefault();
 
+        const totalSleep = calculateSleepDuration();
+
         const newEntry = {
             date,
-            sleepStart,
-            sleepEnd,
+            sleepHours,
+            sleepMinutes,
             sleepQuality,
-            sleepDuration: calculateSleepDuration(),
+            sleepDuration: totalSleep,
             restingPulse: parseFloat(restingPulse),
             morningEnergy,
             weightEntries,
@@ -188,7 +174,7 @@ const useHealthTracker = () => {
             // Add new entry
             setEntries([...entries, newEntry]);
         }
-    }, [date, sleepStart, sleepEnd, sleepQuality, morningEnergy, weightEntries,
+    }, [date, sleepHours, sleepMinutes, sleepQuality, morningEnergy, weightEntries,
         steps, calories, alcohol, eveningMood, workout, notes, entries, calculateSleepDuration, restingPulse]);
 
     // Export data to CSV
@@ -204,8 +190,8 @@ const useHealthTracker = () => {
         // Add header
         csvRows.push([
             'Дата',
-            'Время сна (начало)',
-            'Время сна (конец)',
+            'Сон (часы)',
+            'Сон (минуты)',
             'Качество сна',
             'Длительность сна',
             'Пульс в покое',
@@ -226,8 +212,8 @@ const useHealthTracker = () => {
                 entry.weightEntries.forEach(weightEntry => {
                     csvRows.push([
                         entry.date,
-                        entry.sleepStart,
-                        entry.sleepEnd,
+                        entry.sleepHours,
+                        entry.sleepMinutes,
                         entry.sleepQuality,
                         entry.sleepDuration,
                         entry.restingPulse,
@@ -245,8 +231,8 @@ const useHealthTracker = () => {
             } else {
                 csvRows.push([
                     entry.date,
-                    entry.sleepStart,
-                    entry.sleepEnd,
+                    entry.sleepHours,
+                    entry.sleepMinutes,
                     entry.sleepQuality,
                     entry.sleepDuration,
                     entry.restingPulse,
@@ -283,6 +269,7 @@ const useHealthTracker = () => {
         const stepsData = [];
         const caloriesData = [];
         const pulseData = [];
+        const sleepData = [];
 
         entries.forEach(entry => {
             if (entry.weightEntries) {
@@ -298,6 +285,7 @@ const useHealthTracker = () => {
             stepsData.push({ date: entry.date, value: entry.steps });
             caloriesData.push({ date: entry.date, value: entry.calories });
             pulseData.push({ date: entry.date, value: entry.restingPulse });
+            sleepData.push({ date: entry.date, value: entry.sleepDuration });
         });
 
         return {
@@ -307,14 +295,15 @@ const useHealthTracker = () => {
             steps: stepsData,
             calories: caloriesData,
             pulse: pulseData,
+            sleep: sleepData
         };
     }, [entries]);
 
     return {
         // State
         date,
-        sleepStart,
-        sleepEnd,
+        sleepHours,
+        sleepMinutes,
         sleepQuality,
         morningEnergy,
         weightEntries,
@@ -336,8 +325,8 @@ const useHealthTracker = () => {
 
         // Functions
         setDate: handleDateChange,
-        setSleepStart,
-        setSleepEnd,
+        setSleepHours,
+        setSleepMinutes,
         setSleepQuality,
         setMorningEnergy,
         setWeightEntries,
@@ -419,17 +408,16 @@ const Chart = React.memo(({ data, title, color = "blue" }) => {
                                     className="chart-bar"
                                     style={{
                                         height: `${getBarHeight(entry.value)}%`,
-                                        backgroundColor: `#${color}99`
                                     }}
-                                    title={`${entry.condition}: ${entry.value}`}
+                                    title={`${entry.condition || entry.value}`}
                                 ></div>
-                                <div className="chart-bar-tooltip">
-                                    {entry.condition}: {entry.value}
+                                <div className="chart-tooltip">
+                                    {entry.condition || entry.value}
                                 </div>
                             </div>
                         ))}
                         <div className="chart-date">
-                            {new Date(group.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
+                            {new Date(group.date).toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' })}
                         </div>
                     </div>
                 ))}
@@ -443,8 +431,8 @@ export default function App() {
     const {
         // State
         date,
-        sleepStart,
-        sleepEnd,
+        sleepHours,
+        sleepMinutes,
         sleepQuality,
         morningEnergy,
         weightEntries,
@@ -466,8 +454,8 @@ export default function App() {
 
         // Functions
         setDate,
-        setSleepStart,
-        setSleepEnd,
+        setSleepHours,
+        setSleepMinutes,
         setSleepQuality,
         setMorningEnergy,
         setWeightEntries,
@@ -553,22 +541,35 @@ export default function App() {
 
                             <div className="form-section">
                                 <h3>🌙 Сон</h3>
-                                <div className="form-group">
-                                    <label>Время сна (начало)</label>
-                                    <input
-                                        type="time"
-                                        value={sleepStart}
-                                        onChange={(e) => setSleepStart(e.target.value)}
-                                    />
-                                </div>
 
-                                <div className="form-group">
-                                    <label>Время сна (конец)</label>
-                                    <input
-                                        type="time"
-                                        value={sleepEnd}
-                                        onChange={(e) => setSleepEnd(e.target.value)}
-                                    />
+                                <div className="sleep-inputs">
+                                    <div className="form-group">
+                                        <label>Длительность сна</label>
+                                    </div>
+
+                                    <div className="sleep-duration">
+                                        <div className="sleep-hours">
+                                            <input
+                                                type="number"
+                                                value={sleepHours}
+                                                onChange={(e) => setSleepHours(parseInt(e.target.value) || 0)}
+                                                min="0"
+                                                max="24"
+                                            />
+                                            <span>ч</span>
+                                        </div>
+
+                                        <div className="sleep-minutes">
+                                            <input
+                                                type="number"
+                                                value={sleepMinutes}
+                                                onChange={(e) => setSleepMinutes(parseInt(e.target.value) || 0)}
+                                                min="0"
+                                                max="59"
+                                            />
+                                            <span>мин</span>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div className="form-group">
@@ -589,23 +590,23 @@ export default function App() {
                                 <h3>⚖️ Вес</h3>
 
                                 {weightEntries.map((entry, index) => (
-                                    <div key={index} className="form-group">
-                                        <div className="weight-entry">
-                                            <div className="weight-field">
-                                                <label>Вес (кг)</label>
-                                                <input
-                                                    type="number"
-                                                    value={entry.value}
-                                                    onChange={(e) => updateWeightEntry(index, 'value', e.target.value)}
-                                                    placeholder="Ваш вес"
-                                                    min="0"
-                                                    max="300"
-                                                    step="0.1"
-                                                />
-                                            </div>
+                                    <div key={index} className="weight-entry">
+                                        <div className="form-group">
+                                            <label>Вес (кг)</label>
+                                            <input
+                                                type="number"
+                                                value={entry.value}
+                                                onChange={(e) => updateWeightEntry(index, 'value', e.target.value)}
+                                                placeholder="Ваш вес"
+                                                min="0"
+                                                max="300"
+                                                step="0.1"
+                                            />
+                                        </div>
 
-                                            <div className="condition-field">
-                                                <label>Условия</label>
+                                        <div className="form-group">
+                                            <label>Условия</label>
+                                            <div className="relative">
                                                 <input
                                                     list={`weightConditions-${index}`}
                                                     value={entry.condition}
@@ -618,28 +619,28 @@ export default function App() {
                                                     ))}
                                                 </datalist>
                                             </div>
+                                        </div>
 
-                                            <div className="weight-buttons">
-                                                {index === weightEntries.length - 1 && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={addWeightEntry}
-                                                        className="add-button"
-                                                    >
-                                                        +
-                                                    </button>
-                                                )}
+                                        <div className="entry-buttons">
+                                            {index === weightEntries.length - 1 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={addWeightEntry}
+                                                    className="add-button"
+                                                >
+                                                    +
+                                                </button>
+                                            )}
 
-                                                {index > 0 && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeWeightEntry(index)}
-                                                        className="remove-button"
-                                                    >
-                                                        -
-                                                    </button>
-                                                )}
-                                            </div>
+                                            {index > 0 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeWeightEntry(index)}
+                                                    className="remove-button"
+                                                >
+                                                    -
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
@@ -800,6 +801,10 @@ export default function App() {
                             <div className="chart-wrapper">
                                 <Chart data={chartData.pulse} title="❤️ Пульс в покое" color="FF475C" />
                             </div>
+
+                            <div className="chart-wrapper">
+                                <Chart data={chartData.sleep} title="🌙 Длительность сна" color="4A90E2" />
+                            </div>
                         </div>
                     </div>
                 )}
@@ -852,8 +857,8 @@ export default function App() {
                                         className="history-row"
                                         onClick={() => {
                                             setDate(entry.date);
-                                            setSleepStart(entry.sleepStart || '23:00');
-                                            setSleepEnd(entry.sleepEnd || '07:00');
+                                            setSleepHours(entry.sleepHours || 8);
+                                            setSleepMinutes(entry.sleepMinutes || 0);
                                             setSleepQuality(entry.sleepQuality || 'good');
                                             setMorningEnergy(entry.morningEnergy || 5);
                                             setWeightEntries(entry.weightEntries || [{ value: '', condition: '' }]);
@@ -863,11 +868,15 @@ export default function App() {
                                             setEveningMood(entry.eveningMood || 5);
                                             setWorkout(entry.workout || false);
                                             setNotes(entry.notes || '');
+                                            setRestingPulse(entry.restingPulse || '');
                                             setActiveTab('entry');
                                         }}
                                     >
                                         <td>{new Date(entry.date).toLocaleDateString('ru-RU')}</td>
-                                        <td>{entry.sleepStart} - {entry.sleepEnd}</td>
+                                        <td>
+                                            {entry.sleepHours || 8}ч {entry.sleepMinutes || 0}м<br/>
+                                            {parseFloat((entry.sleepHours || 8) + (entry.sleepMinutes || 0)/60).toFixed(1)} ч
+                                        </td>
                                         <td>{entry.restingPulse || '-'} уд/мин</td>
                                         <td>
                                             {entry.weightEntries && entry.weightEntries.length > 0 ? (
@@ -911,6 +920,12 @@ export default function App() {
                                 disabled={!reminderEnabled}
                             />
                         </div>
+
+                        <p>
+                            {reminderEnabled
+                                ? "Вы будете получать напоминания в это время каждый день."
+                                : "Включите напоминание, чтобы установить время для ежедневного ввода данных."}
+                        </p>
                     </div>
                 </div>
             </main>

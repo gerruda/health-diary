@@ -1,9 +1,8 @@
-/* Add these styles to a new file: App.css */
+/* Add these styles to App.css */
 .app-container {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     min-height: 100vh;
     background-color: #f9f9f9;
-    color: #333;
 }
 
 .header {
@@ -52,12 +51,11 @@
     background-color: white;
     border-radius: 8px;
     padding: 24px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     margin-bottom: 24px;
 }
 
 .form-container h2 {
-    font-size: 22px;
+    font-size: 20px;
     margin-bottom: 16px;
 }
 
@@ -78,8 +76,8 @@
 
 .data-form input[type="text"],
 .data-form input[type="number"],
-.data-form input[type="time"],
 .data-form input[type="date"],
+.data-form input[type="time"],
 .data-form select,
 .data-form textarea {
     padding: 12px;
@@ -98,7 +96,6 @@
     background-color: #f5f5f5;
     padding: 16px;
     border-radius: 6px;
-    margin-top: 16px;
 }
 
 .form-section h3 {
@@ -107,35 +104,45 @@
     color: #2c3e50;
 }
 
+.sleep-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.sleep-duration {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.sleep-hours,
+.sleep-minutes {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.sleep-hours input,
+.sleep-minutes input {
+    width: 100%;
+}
+
+.sleep-hours span,
+.sleep-minutes span {
+    margin-top: 4px;
+    font-size: 14px;
+    color: #666;
+}
+
 .range-container {
     display: flex;
     align-items: center;
     gap: 12px;
 }
 
-.range-container span {
-    min-width: 24px;
-}
-
-.range-container input[type="range"] {
-    flex: 1;
-    height: 8px;
-    border-radius: 4px;
-    background: #ddd;
-    outline: none;
-}
-
-.range-container input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: #2c3e50;
-    cursor: pointer;
-    -webkit-appearance: none;
-    appearance: none;
-    outline: none;
+.range-value {
+    font-weight: bold;
 }
 
 .radio-group {
@@ -152,18 +159,23 @@
 .weight-entry {
     display: flex;
     gap: 12px;
-    flex-wrap: wrap;
+    margin-bottom: 12px;
 }
 
-.weight-field,
-.condition-field {
+.weight-entry .form-group {
+    flex: 1;
+    margin: 0;
+}
+
+.weight-entry .form-group:last-child {
     flex: 1;
 }
 
-.weight-buttons {
+.entry-buttons {
     display: flex;
     align-items: flex-end;
     gap: 8px;
+    margin-top: 8px;
 }
 
 .add-button,
@@ -175,6 +187,7 @@
     border-radius: 4px;
     font-weight: bold;
     cursor: pointer;
+    transition: background-color 0.3s;
 }
 
 .remove-button {
@@ -260,22 +273,18 @@
 
 .chart-bar-wrapper {
     position: relative;
-    height: 100%;
     width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
 }
 
 .chart-bar {
-    width: 20px;
-    border-radius: 4px;
+    width: 100%;
+    border-radius: 4px 4px 0 0;
     transition: all 0.3s;
     position: relative;
+    min-height: 10px;
 }
 
-.chart-bar-tooltip {
+.chart-tooltip {
     position: absolute;
     bottom: 100%;
     left: 50%;
@@ -284,13 +293,12 @@
     color: #fff;
     padding: 4px 8px;
     border-radius: 4px;
-    white-space: nowrap;
     font-size: 12px;
     opacity: 0;
     transition: opacity 0.3s;
 }
 
-.chart-bar-wrapper:hover .chart-bar-tooltip {
+.chart-bar-wrapper:hover .chart-tooltip {
     opacity: 1;
 }
 
@@ -321,7 +329,7 @@
 .export-controls {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 16px;
 }
 
 .date-range {
@@ -340,10 +348,6 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-}
-
-.export-button span {
-    font-size: 16px;
 }
 
 .history-table {
@@ -370,14 +374,9 @@
     cursor: pointer;
 }
 
-.footer {
-    background-color: #ecf0f1;
-    padding: 24px;
-    margin-top: 32px;
-}
-
-.footer-content {
+.no-data {
     text-align: center;
+    padding: 32px 0;
     color: #666;
 }
 
@@ -388,40 +387,46 @@
     margin-top: 24px;
 }
 
-.reminder-container h2 {
-    margin-top: 0;
-}
-
 .reminder-group {
     display: flex;
     flex-direction: column;
     gap: 12px;
 }
 
-.reminder-group label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+.reminder-group input[type="checkbox"] {
+    margin-right: 8px;
 }
 
 .reminder-time input {
     margin-left: 8px;
-    padding: 8px 12px;
+    padding: 6px 10px;
     border: 1px solid #ccc;
     border-radius: 4px;
 }
 
+.footer {
+    background-color: #ecf0f1;
+    padding: 24px 0;
+    margin-top: 32px;
+}
+
+.footer-content {
+    text-align: center;
+    color: #666;
+}
+
 /* Responsive styles */
 @media (max-width: 768px) {
-    .chart-bar-group {
-        min-width: 30px;
+    .sleep-inputs {
+        grid-template-columns: 1fr;
     }
 
-    .chart-bar {
-        width: 12px;
+    .sleep-duration {
+        flex-direction: column;
+        gap: 8px;
     }
 
-    .chart-date {
-        font-size: 10px;
+    .export-controls {
+        flex-direction: column;
     }
 }
