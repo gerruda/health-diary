@@ -654,7 +654,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 allData.push({
                     Дата: date,
                     Время: entry.time,
-                    Пульс: entry.pulse,
+                    'Пульс в покое': entry.pulse,
                     'Длительность сна': entry.sleepDuration,
                     'Уровень энергии': entry.energyLevel,
                     Вес: entry.weight,
