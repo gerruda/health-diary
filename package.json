@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "homepage": ".",
+  "homepage": "https://gerruda.github.io/health-diary ",
   "dependencies": {
     "gh-pages": "^6.3.0",
     "react": "^19.1.0",
