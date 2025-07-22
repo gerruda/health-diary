@@ -131,7 +131,8 @@
             </div>
 
             <div class="form-buttons">
-                <button type="submit" class="btn-save"><i class="fas fa-save"></i> Сохранить</button>
+                <button type="submit" class="btn-save">Сохранить</button>
+                <button type="button" class="btn-add" id="edit-entry-btn">Редактировать</button>
             </div>
         </form>
     </div>
@@ -174,9 +175,8 @@
             </div>
 
             <div class="form-buttons">
-                <button type="submit" class="btn-save">
-                    <i class="fas fa-save"></i> Сохранить упражнение
-                </button>
+                <button type="submit" class="btn-save">Сохранить тренировку</button>
+                <button type="button" class="btn-add" id="edit-workout-btn">Редактировать</button>
             </div>
 
             <div id="saved-exercises">
@@ -197,6 +197,12 @@
     <!-- Вкладка "История" -->
     <div class="tab-content" id="history-tab">
         <h2>🗄️ История</h2>
+        <div class="history-controls">
+            <select id="history-date">
+                <option value="all">Все даты</option>
+                <option value="week">Текущая неделя</option>
+            </select>
+        </div>
         <div id="history-list"></div>
     </div>
 

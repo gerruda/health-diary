@@ -24,10 +24,6 @@ export function getExercisesList() {
     return JSON.parse(localStorage.getItem('exercisesList')) || [];
 }
 
-export function getWorkoutHistory() {
-    return JSON.parse(localStorage.getItem('workoutHistory')) || {};
-}
-
 // Сохранение данных
 export function saveHealthData(data) {
     localStorage.setItem('healthData', JSON.stringify(data));
@@ -47,4 +43,26 @@ export function saveExercisesList(list) {
 
 export function saveWorkoutHistory(history) {
     localStorage.setItem('workoutHistory', JSON.stringify(history));
+}
+
+// Получение истории тренировок с расчетом 1ПМ
+export function getWorkoutHistory() {
+    const history = JSON.parse(localStorage.getItem('workoutHistory')) || {};
+
+    // Гарантируем наличие ID для всех тренировок
+    for (const date in history) {
+        history[date] = history[date].map(exercise => {
+            if (!exercise.id) {
+                return {...exercise, id: Date.now()};
+            }
+            return exercise;
+        });
+    }
+
+    return history;
+}
+
+// Формула расчета 1ПМ
+function calculateOneRepMax(weight, reps) {
+    return weight * (1 + reps / 30);
 }

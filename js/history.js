@@ -1,25 +1,31 @@
 import { getHealthData, getWorkoutHistory } from './storage.js';
-import { formatDate } from './utils.js';
+import { formatDate, activateTab } from './utils.js';
 
 export function initHistory() {
     loadHistoryData();
+
+    // Обработчики для кнопок выбора даты
+    document.getElementById('history-date')?.addEventListener('change', loadHistoryData);
 }
 
 export function loadHistoryData() {
     const healthData = getHealthData();
     const workoutHistory = getWorkoutHistory();
     const historyList = document.getElementById('history-list');
+    const dateFilter = document.getElementById('history-date')?.value;
 
     if (!historyList) return;
 
-    // Очищаем список
     historyList.innerHTML = '';
 
-    // Получаем все даты и сортируем их
-    const allDates = [
-        ...Object.keys(healthData),
-        ...Object.keys(workoutHistory)
-    ];
+    // Получаем и фильтруем даты
+    let allDates = [...Object.keys(healthData), ...Object.keys(workoutHistory)];
+    if (dateFilter === 'week') {
+        const today = new Date();
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() - today.getDay());
+        allDates = allDates.filter(date => new Date(date) >= startOfWeek);
+    }
 
     const uniqueDates = [...new Set(allDates)].sort((a, b) =>
         new Date(b) - new Date(a)
@@ -30,7 +36,6 @@ export function loadHistoryData() {
         return;
     }
 
-    // Создаем элементы для каждой даты
     uniqueDates.forEach(date => {
         const dateHeader = document.createElement('h3');
         dateHeader.textContent = formatDate(new Date(date), {
@@ -39,16 +44,20 @@ export function loadHistoryData() {
             month: 'long',
             day: 'numeric'
         });
-
         historyList.appendChild(dateHeader);
 
-        // Добавляем записи о здоровье
+        // Записи о здоровье
         if (healthData[date]) {
             healthData[date].forEach(entry => {
                 const entryEl = document.createElement('div');
                 entryEl.className = 'history-entry';
                 entryEl.innerHTML = `
-                    <p><strong>${entry.time}</strong></p>
+                    <div class="entry-header">
+                        <span class="entry-time">${entry.time}</span>
+                        <div class="entry-actions">
+                            <button class="edit-btn" data-type="health" data-date="${date}" data-time="${entry.time}">✏️</button>
+                        </div>
+                    </div>
                     ${entry.pulse ? `<p>Пульс: ${entry.pulse} уд/мин</p>` : ''}
                     ${entry.sleepDuration ? `<p>Сон: ${entry.sleepDuration}</p>` : ''}
                     ${entry.weight ? `<p>Вес: ${entry.weight} кг</p>` : ''}
@@ -60,13 +69,18 @@ export function loadHistoryData() {
             });
         }
 
-        // Добавляем записи о тренировках
+        // Тренировки
         if (workoutHistory[date]) {
             workoutHistory[date].forEach(exercise => {
                 const exerciseEl = document.createElement('div');
                 exerciseEl.className = 'history-exercise';
                 exerciseEl.innerHTML = `
-                    <p><strong>${exercise.name}</strong>${exercise.rpe ? ` (RPE: ${exercise.rpe})` : ''}</p>
+                    <div class="entry-header">
+                        <span>${exercise.name}</span>
+                        <div class="entry-actions">
+                            <button class="edit-btn" data-type="workout" data-date="${date}" data-id="${exercise.id}">✏️</button>
+                        </div>
+                    </div>
                     <div class="exercise-sets">
                         ${exercise.sets.map(set =>
                     `<p>${set.weight} кг × ${set.reps} повторений</p>`
@@ -77,4 +91,40 @@ export function loadHistoryData() {
             });
         }
     });
+
+    // Добавляем обработчики для кнопок редактирования
+    document.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const type = this.dataset.type;
+            const date = this.dataset.date;
+
+            if (type === 'health') {
+                const time = this.dataset.time;
+                editHealthEntry(date, time);
+            } else {
+                const id = this.dataset.id;
+                editWorkoutEntry(date, id);
+            }
+        });
+    });
+}
+
+// Функция редактирования записи здоровья
+export function editHealthEntry(date, time) {
+    activateTab('daily-tracker');
+
+    // Устанавливаем дату и время
+    document.getElementById('entry-date').value = date;
+    document.getElementById('entry-time').value = time;
+
+    // Загружаем данные
+    const healthData = getHealthData();
+    const entry = healthData[date].find(item => item.time === time);
+
+    if (entry) {
+        populateForm(entry);
+
+        // Устанавливаем флаг редактирования
+        document.getElementById('daily-form').dataset.editing = `${date}|${time}`;
+    }
 }

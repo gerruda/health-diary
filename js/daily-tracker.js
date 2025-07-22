@@ -35,14 +35,40 @@ export function initDailyTracker() {
 
     // Обработка отправки формы
     dailyForm.addEventListener('submit', (e) => handleDailySubmit(e, dateStr));
+
+    // Добавляем обработчик для кнопки редактирования
+    document.getElementById('edit-entry-btn')?.addEventListener('click', () => {
+        const date = document.getElementById('entry-date').value;
+        const time = document.getElementById('entry-time').value;
+        const healthData = getHealthData();
+
+        if (healthData[date]) {
+            const entryIndex = healthData[date].findIndex(item => item.time === time);
+            if (entryIndex !== -1) {
+                // Устанавливаем флаг редактирования
+                document.getElementById('daily-form').dataset.editing = `${date}|${time}`;
+            }
+        }
+    });
 }
 
 function loadTodayData(date) {
     const healthData = getHealthData();
+    const currentTime = document.getElementById('entry-time').value;
 
     if (healthData[date]?.length > 0) {
-        const lastEntry = healthData[date][healthData[date].length - 1];
-        populateForm(lastEntry);
+        // Ищем запись с текущим временем
+        const entry = healthData[date].find(item => item.time === currentTime);
+
+        if (entry) {
+            populateForm(entry);
+            // Устанавливаем флаг редактирования
+            document.getElementById('daily-form').dataset.editing = `${date}|${currentTime}`;
+        } else {
+            // Показываем последнюю запись за день
+            const lastEntry = healthData[date][healthData[date].length - 1];
+            populateForm(lastEntry);
+        }
     }
 }
 
@@ -102,8 +128,18 @@ function handleDailySubmit(e, date) {
     // Обновление существующей записи или добавление новой
     if (!healthData[date]) healthData[date] = [];
 
-    // Проверяем, есть ли запись с таким же временем
-    const existingIndex = healthData[date].findIndex(item => item.time === time);
+    // Проверяем, редактируем ли мы существующую запись
+    const editingFlag = e.target.dataset.editing;
+    let existingIndex = -1;
+
+    if (editingFlag) {
+        const [editDate, editTime] = editingFlag.split('|');
+        if (editDate === date) {
+            existingIndex = healthData[date].findIndex(item => item.time === editTime);
+        }
+    } else {
+        existingIndex = healthData[date].findIndex(item => item.time === time);
+    }
 
     if (existingIndex !== -1) {
         // Обновляем существующую запись
@@ -115,7 +151,18 @@ function handleDailySubmit(e, date) {
 
     saveHealthData(healthData);
 
+    // Сбрасываем флаг редактирования
+    delete e.target.dataset.editing;
+
     // Оповещение и обновление истории
     alert('Данные сохранены!');
     loadHistoryData(); // Обновляем историю
+}
+
+export function editHealthEntry(date, id) {
+    activateTab('daily-tracker');
+    const healthData = getHealthData();
+    const entry = healthData[date].find(item => item.id == id);
+    populateForm(entry);
+    document.getElementById('entry-date').value = date;
 }

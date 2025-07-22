@@ -4,7 +4,7 @@ import {
     getWorkoutHistory,
     saveWorkoutHistory
 } from './storage.js';
-import { generateId } from './utils.js';
+import {activateTab, generateId} from './utils.js';
 
 export function initWorkoutTracker() {
     const workoutForm = document.getElementById('workout-form');
@@ -16,6 +16,47 @@ export function initWorkoutTracker() {
     // Обработчики событий
     document.getElementById('add-set')?.addEventListener('click', addSetRow);
     workoutForm.addEventListener('submit', saveExercise);
+
+    document.getElementById('edit-workout-btn')?.addEventListener('click', () => {
+        const exerciseName = document.getElementById('exercise-name').value;
+        if (exerciseName) {
+            document.getElementById('workout-form').dataset.editing = exerciseName;
+        }
+    });
+}
+
+// Функция редактирования тренировки
+export function editWorkoutEntry(date, id) {
+    activateTab('workout');
+
+    const workoutHistory = getWorkoutHistory();
+    const exercise = workoutHistory[date].find(item => item.id == id);
+
+    if (exercise) {
+        populateWorkoutForm(exercise);
+
+        // Устанавливаем флаг редактирования
+        document.getElementById('workout-form').dataset.editing = `${date}|${id}`;
+    }
+}
+
+// Заполнение формы тренировки
+function populateWorkoutForm(exercise) {
+    document.getElementById('exercise-name').value = exercise.name;
+    document.getElementById('rpe-workout').value = exercise.rpe || '';
+
+    // Очищаем существующие подходы
+    const setsContainer = document.getElementById('sets-container');
+    setsContainer.innerHTML = '';
+
+    // Добавляем подходы
+    exercise.sets.forEach((set, index) => {
+        const setElement = createSetElement(set.weight, set.reps, index);
+        setsContainer.appendChild(setElement);
+    });
+
+    // Обновляем счетчик подходов
+    setCount = exercise.sets.length;
 }
 
 function initExercisesList() {
@@ -41,25 +82,23 @@ function addSetRow() {
     tbody.appendChild(row);
 }
 
-function saveExercise(e) {
+// Обновленная функция сохранения тренировки
+function saveWorkout(e) {
     e.preventDefault();
 
-    const exercisesList = getExercisesList();
     const workoutHistory = getWorkoutHistory();
-
-    // Сбор данных из формы
-    const exerciseName = document.getElementById('exercise-name').value.trim();
+    const date = new Date().toISOString().split('T')[0];
+    const exerciseName = document.getElementById('exercise-name').value;
     const sets = [];
 
     const rpe = document.getElementById('workout-rpe').value;
 
     // Сохранение упражнения
-    const exercise = {
-        id: generateId(),
+    const exerciseData = {
+        id: Date.now(),
         name: exerciseName,
-        rpe: rpe ? parseInt(rpe) : null,
-        sets: sets,
-        date: new Date().toISOString()
+        rpe: document.getElementById('rpe-workout').value || null,
+        sets: setsData
     };
 
     // Добавление в список упражнений
@@ -69,14 +108,31 @@ function saveExercise(e) {
         initExercisesList();
     }
 
-    // Сохранение в историю тренировок
-    const today = new Date().toISOString().split('T')[0];
-    if (!workoutHistory[today]) workoutHistory[today] = [];
-    workoutHistory[today].push(exercise);
-    saveWorkoutHistory(workoutHistory);
+    // Проверяем, редактируем ли существующую тренировку
+    const editingFlag = e.target.dataset.editing;
+    if (editingFlag) {
+        const [editDate, editId] = editingFlag.split('|');
 
-    // Обновление списка упражнений
-    updateExercisesList(today);
+        if (workoutHistory[editDate]) {
+            const index = workoutHistory[editDate].findIndex(item => item.id == editId);
+            if (index !== -1) {
+                workoutHistory[editDate][index] = exerciseData;
+            } else {
+                workoutHistory[editDate].push(exerciseData);
+            }
+        } else {
+            workoutHistory[editDate] = [exerciseData];
+        }
+
+        // Сбрасываем флаг редактирования
+        delete e.target.dataset.editing;
+    } else {
+        // Новая тренировка
+        if (!workoutHistory[date]) workoutHistory[date] = [];
+        workoutHistory[date].push(exerciseData);
+    }
+
+    saveWorkoutHistory(workoutHistory);
 
     // Очистка формы
     workoutForm.reset();

@@ -91,3 +91,36 @@ export function initTabs() {
     }
 }
 
+export function activateTab(tabId) {
+    // Активация выбранной вкладки
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.getElementById(tabId).classList.add('active');
+
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+        if(tab.dataset.tab === tabId) {
+            tab.classList.add('active');
+        }
+    });
+}
+
+// export function activateTab(tabId) {
+//     // Скрыть все вкладки
+//     document.querySelectorAll('.tab-content').forEach(tab => {
+//         tab.classList.remove('active');
+//     });
+//
+//     // Показать нужную вкладку
+//     const targetTab = document.getElementById(tabId);
+//     if (targetTab) {
+//         targetTab.classList.add('active');
+//     }
+//
+//     // Обновить активное состояние кнопок вкладок
+//     document.querySelectorAll('.tab').forEach(tab => {
+//         tab.classList.toggle('active', tab.dataset.tab === tabId);
+//     });
+// }
+
