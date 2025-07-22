@@ -1,9 +1,9 @@
 import {
     getExercisesList,
     getWorkoutHistory,
-    saveWorkoutHistory
+    saveWorkoutHistory,
+    saveExercisesList
 } from './storage.js';
-import { activateTab } from './utils.js';
 
 let setCount = 0;
 
@@ -14,6 +14,16 @@ export function initWorkoutTracker() {
     // Инициализация списка упражнений
     initExercisesList();
 
+    // Добавляем обработчик для кнопки "Добавить подход"
+    document.getElementById('add-set')?.addEventListener('click', addSetRow);
+
+    // Добавляем обработчик для удаления подходов
+    document.getElementById('sets-body')?.addEventListener('click', (e) => {
+        if (e.target.classList.contains('btn-remove-set')) {
+            e.target.closest('tr').remove();
+        }
+    });
+
     // Обработчики событий
     document.getElementById('edit-workout-btn')?.addEventListener('click', () => {
         const exerciseName = document.getElementById('exercise-name').value;
@@ -22,7 +32,7 @@ export function initWorkoutTracker() {
         }
     });
 
-    document.getElementById('workout-form').addEventListener('submit', saveWorkout);
+    workoutForm.addEventListener('submit', saveWorkout);
 }
 
 // Заполнение формы тренировки
@@ -31,14 +41,14 @@ export function populateWorkoutForm(exercise) {
     const nameInput = document.getElementById('exercise-name');
     if (nameInput) nameInput.value = exercise.name || '';
 
-    const rpeInput = document.getElementById('workout-rpe');
+    const rpeInput = document.getElementById('workout-rpe'); // Исправлено на workout-rpe
     if (rpeInput) rpeInput.value = exercise.rpe || '';
 
     const setsContainer = document.getElementById('sets-body');
     if (setsContainer) {
         setsContainer.innerHTML = '';
 
-        exercise.sets.forEach((set, index) => {
+        exercise.sets.forEach((set) => {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td><input type="number" class="set-weight" step="0.1" min="0" value="${set.weight || ''}"></td>
@@ -57,23 +67,27 @@ function initExercisesList() {
     const exercisesList = getExercisesList();
     const exerciseListEl = document.getElementById('exercise-list');
 
-    exerciseListEl.innerHTML = '';
-    exercisesList.forEach(exercise => {
-        const option = document.createElement('option');
-        option.value = exercise;
-        exerciseListEl.appendChild(option);
-    });
+    if (exerciseListEl) {
+        exerciseListEl.innerHTML = '';
+        exercisesList.forEach(exercise => {
+            const option = document.createElement('option');
+            option.value = exercise;
+            exerciseListEl.appendChild(option);
+        });
+    }
 }
 
 function addSetRow() {
     const tbody = document.getElementById('sets-body');
-    const row = document.createElement('tr');
-    row.innerHTML = `
-    <td><input type="number" class="set-weight" step="0.1" min="0"></td>
-    <td><input type="number" class="set-reps" min="1"></td>
-    <td><button type="button" class="btn-remove-set"><i class="fas fa-times"></i></button></td>
-  `;
-    tbody.appendChild(row);
+    if (tbody) {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><input type="number" class="set-weight" step="0.1" min="0"></td>
+            <td><input type="number" class="set-reps" min="1"></td>
+            <td><button type="button" class="btn-remove-set"><i class="fas fa-times"></i></button></td>
+        `;
+        tbody.appendChild(row);
+    }
 }
 
 // Обновленная функция сохранения тренировки
@@ -83,21 +97,47 @@ function saveWorkout(e) {
     const workoutHistory = getWorkoutHistory();
     const date = new Date().toISOString().split('T')[0];
     const exerciseName = document.getElementById('exercise-name').value;
+    const rpeInput = document.getElementById('workout-rpe');
 
-    // Сохранение упражнения
-    const exerciseData = {
-        id: Date.now(),
-        name: exerciseName,
-        rpe: document.getElementById('rpe-workout').value || null,
-        sets: setsData
-    };
+    // Собираем данные о подходах
+    const setsData = [];
+    const setRows = document.querySelectorAll('#sets-body tr');
+    setRows.forEach(row => {
+        const weightInput = row.querySelector('.set-weight');
+        const repsInput = row.querySelector('.set-reps');
 
+        if (weightInput && repsInput && weightInput.value && repsInput.value) {
+            setsData.push({
+                weight: parseFloat(weightInput.value),
+                reps: parseInt(repsInput.value)
+            });
+        }
+    });
+
+    if (setsData.length === 0) {
+        alert('Добавьте хотя бы один подход!');
+        return;
+    }
 
     // Проверяем, редактируем ли существующую тренировку
     const editingFlag = e.target.dataset.editing;
+    let exerciseData;
+
     if (editingFlag) {
         const [editDate, editId] = editingFlag.split('|');
 
+        // Находим существующую тренировку
+        const existingExercise = workoutHistory[editDate]?.find(item => item.id == editId);
+
+        // Создаем обновленные данные с сохранением ID
+        exerciseData = {
+            id: existingExercise.id, // Сохраняем оригинальный ID
+            name: exerciseName,
+            rpe: rpeInput?.value || null,
+            sets: setsData
+        };
+
+        // Обновляем запись
         if (workoutHistory[editDate]) {
             const index = workoutHistory[editDate].findIndex(item => item.id == editId);
             if (index !== -1) {
@@ -113,25 +153,39 @@ function saveWorkout(e) {
         delete e.target.dataset.editing;
     } else {
         // Новая тренировка
+        exerciseData = {
+            id: Date.now(), // Генерируем новый ID
+            name: exerciseName,
+            rpe: rpeInput?.value || null,
+            sets: setsData
+        };
+
         if (!workoutHistory[date]) workoutHistory[date] = [];
         workoutHistory[date].push(exerciseData);
+
+        // Добавляем упражнение в список, если его там нет
+        const exercisesList = getExercisesList();
+        if (!exercisesList.includes(exerciseName)) {
+            exercisesList.push(exerciseName);
+            saveExercisesList(exercisesList);
+            initExercisesList();
+        }
     }
 
     saveWorkoutHistory(workoutHistory);
-
-    // Очистка формы
-    document.getElementById('sets-body').innerHTML = '';
-    addSetRow();
+    alert('Тренировка сохранена!');
+    clearWorkoutForm();
 }
 
-export function editWorkoutEntry(date, id) {
-    activateTab('workout');
+function clearWorkoutForm() {
+    document.getElementById('exercise-name').value = '';
+    const rpeInput = document.getElementById('workout-rpe');
+    if (rpeInput) rpeInput.value = '';
 
-    const workoutHistory = getWorkoutHistory();
-    const exercise = workoutHistory[date].find(item => item.id == id);
-
-    if (exercise) {
-        populateWorkoutForm(exercise);
-        document.getElementById('workout-form').dataset.editing = `${date}|${id}`;
+    const tbody = document.getElementById('sets-body');
+    if (tbody) {
+        tbody.innerHTML = '';
+        addSetRow();
     }
 }
+

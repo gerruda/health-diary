@@ -117,3 +117,7 @@ export function initTabs() {
         }
     }
 }
+
+export function confirmAction(message) {
+    return window.confirm(message || 'Вы уверены?');
+}
