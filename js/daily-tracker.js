@@ -5,13 +5,10 @@ import {
     saveWeightConditions,
 } from './storage.js';
 import { loadHistoryData } from './history.js';
-import {activateTab} from "./utils"; // Импортируем функцию обновления истории
+import { activateTab } from "./utils.js"; // Импортируем функцию обновления истории
 
 export function initDailyTracker() {
-    const workoutSelect = document.getElementById('workout');
-    const rpeContainer = document.getElementById('rpe-container');
     const dailyForm = document.getElementById('daily-form');
-
     if (!dailyForm) return;
 
     // Установка текущей даты
@@ -19,36 +16,48 @@ export function initDailyTracker() {
     const dateStr = today.toISOString().split('T')[0];
 
     const dateInput = document.getElementById('entry-date');
-    if (dateInput) {
-        dateInput.value = dateStr;
+    if (dateInput) dateInput.value = dateStr;
+
+    // Инициализация времени
+    const timeInput = document.getElementById('entry-time') || createTimeInput();
+    timeInput.value = today.toTimeString().substring(0, 5);
+
+    // Инициализация RPE
+    initRPEVisibility();
+
+    // Загрузка данных
+    loadTodayData(dateStr);
+
+    // Обработка формы
+    dailyForm.addEventListener('submit', (e) => handleDailySubmit(e, dateStr));
+}
+
+function createTimeInput() {
+    const timeInput = document.createElement('input');
+    timeInput.type = 'time';
+    timeInput.id = 'entry-time';
+
+    const container = document.querySelector('.time-input-container');
+    if (container) {
+        container.appendChild(timeInput);
+    } else {
+        const lastGroup = document.querySelector('.form-group:last-child');
+        if (lastGroup) lastGroup.prepend(timeInput);
     }
 
-    // Инициализация поля времени
-    const timeInput = document.getElementById('entry-time');
-    if (!timeInput) {
-        const newTimeInput = document.createElement('input');
-        newTimeInput.type = 'time';
-        newTimeInput.id = 'entry-time';
-        newTimeInput.value = today.toTimeString().substring(0, 5);
+    return timeInput;
+}
 
-        const formGroup = document.querySelector('.form-group:last-child');
-        if (formGroup) {
-            formGroup.prepend(newTimeInput);
-        }
-    }
+function initRPEVisibility() {
+    const workoutSelect = document.getElementById('workout');
+    const rpeContainer = document.getElementById('rpe-container');
 
-    // Показ/скрытие RPE
     if (workoutSelect && rpeContainer) {
+        rpeContainer.style.display = workoutSelect.value !== 'none' ? 'block' : 'none';
         workoutSelect.addEventListener('change', () => {
             rpeContainer.style.display = workoutSelect.value !== 'none' ? 'block' : 'none';
         });
     }
-
-    // Загрузка данных за сегодня
-    loadTodayData(dateStr);
-
-    // Обработка отправки формы
-    dailyForm.addEventListener('submit', (e) => handleDailySubmit(e, dateStr));
 }
 
 function loadTodayData(date) {
@@ -71,7 +80,7 @@ function loadTodayData(date) {
     }
 }
 
-function populateForm(data) {
+export function populateForm(data) {
     if (data.id) document.getElementById('entry-id').value = data.id;
     if (data.pulse) document.getElementById('pulse').value = data.pulse;
     if (data.sleepDuration) {

@@ -4,7 +4,7 @@ import {
     getWorkoutHistory,
     saveWorkoutHistory
 } from './storage.js';
-import {activateTab, generateId} from './utils.js';
+import { activateTab } from './utils.js';
 
 function createSetElement(weight, reps, index) {
     const setElement = document.createElement('div');
@@ -17,6 +17,8 @@ function createSetElement(weight, reps, index) {
     `;
     return setElement;
 }
+
+let setCount = 0;
 
 export function initWorkoutTracker() {
     const workoutForm = document.getElementById('workout-form');
@@ -34,21 +36,6 @@ export function initWorkoutTracker() {
     });
 
     document.getElementById('workout-form').addEventListener('submit', saveWorkout);
-}
-
-// Функция редактирования тренировки
-export function editWorkoutEntry(date, id) {
-    activateTab('workout');
-
-    const workoutHistory = getWorkoutHistory();
-    const exercise = workoutHistory[date].find(item => item.id == id);
-
-    if (exercise) {
-        populateWorkoutForm(exercise);
-
-        // Устанавливаем флаг редактирования
-        document.getElementById('workout-form').dataset.editing = `${date}|${id}`;
-    }
 }
 
 // Заполнение формы тренировки
@@ -189,7 +176,7 @@ function updateExercisesList(date) {
 }
 
 export function editWorkoutEntry(date, id) {
-    activateTab('workout');
+    activateTab('workout-tab');
 
     const workoutHistory = getWorkoutHistory();
     const exercise = workoutHistory[date].find(item => item.id == id);

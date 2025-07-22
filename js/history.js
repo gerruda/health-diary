@@ -1,7 +1,7 @@
 import { getHealthData, getWorkoutHistory } from './storage.js';
 import { formatDate, activateTab } from './utils.js';
-import { populateForm } from './daily-tracker.js';
-import { populateWorkoutForm } from './workout.js';
+import { populateForm } from './daily-tracker.js'
+import { editWorkoutEntry } from './workout.js'
 
 export function initHistory() {
     loadHistoryData();
@@ -111,7 +111,7 @@ export function loadHistoryData() {
 
 // Функция редактирования записи здоровья
 export function editHealthEntry(date, time) {
-    activateTab('daily-tracker');
+    activateTab('history');
 
     // Устанавливаем дату и время
     document.getElementById('entry-date').value = date;

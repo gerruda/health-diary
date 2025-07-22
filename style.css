@@ -519,21 +519,38 @@ button {
 
 .tab-content {
     display: none;
+    padding: 20px;
+    background: white;
+    border-radius: 0 0 10px 10px;
 }
 
 .tab-content.active {
     display: block;
 }
 
+.tabs {
+    display: flex;
+    background: #f5f7fa;
+    border-bottom: 1px solid #ddd;
+}
+
 .tab {
+    padding: 12px 20px;
     cursor: pointer;
-    padding: 10px 15px;
-    border: 1px solid #ddd;
-    background: #f5f5f5;
+    background: #eaeaea;
+    border: none;
+    border-right: 1px solid #ddd;
+    font-weight: 600;
 }
 
 .tab.active {
-    background: #3498db;
-    color: white;
-    border-color: #3498db;
+    background: white;
+    border-bottom: 3px solid #3498db;
+    color: #3498db;
+}
+
+.time-input-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }

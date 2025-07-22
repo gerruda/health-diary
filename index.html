@@ -27,16 +27,18 @@
 
     <div class="tabs">
         <button class="tab active" data-tab="daily-tracker">Ежедневный ввод</button>
-        <button class="tab" data-tab="workout">Тренировка</button>
-        <button class="tab" data-tab="history">История</button>
-        <button class="tab" data-tab="analytics">Аналитика</button>
-        <button class="tab" data-tab="settings">Настройки</button>
+        <button class="tab" data-tab="workout-tab">Тренировка</button>
+        <button class="tab" data-tab="history-tab">История</button>
+        <button class="tab" data-tab="analytics-tab">Аналитика</button>
+        <button class="tab" data-tab="settings-tab">Настройки</button>
     </div>
 
     <!-- Вкладка ежедневного ввода -->
-    <div class="tab-content active" id="daily-tracker">
+    <div id="daily-tracker" class="tab-content active">
         <form id="daily-form">
-            <input type="date" id="entry-date" hidden>
+            <div class="form-group time-input-container">
+                <input type="date" id="entry-date" hidden>
+            </div>
 
             <div class="form-grid">
 

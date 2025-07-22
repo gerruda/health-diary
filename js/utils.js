@@ -58,85 +58,58 @@ export function moodToNumber(mood) {
     return map[mood] || 3;
 }
 
+export function activateTab(tabId) {
+    // Находим кнопку вкладки и контент
+    const tab = document.querySelector(`.tab[data-tab="${tabId}"]`);
+    const content = document.getElementById(tabId);
+
+    if (!tab || !content) {
+        console.error(`Вкладка ${tabId} не найдена`);
+        return;
+    }
+
+    // Убираем активные классы
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+    // Добавляем активные классы
+    tab.classList.add('active');
+    content.classList.add('active');
+}
+
 export function initTabs() {
     const tabs = document.querySelectorAll('.tab');
 
     tabs.forEach(tab => {
         tab.addEventListener('click', function() {
-            // Удаляем активный класс у всех вкладок
-            tabs.forEach(t => t.classList.remove('active'));
+            const tabId = this.dataset.tab;
+            if (!tabId) return; // Проверка наличия data-tab
 
-            // Скрываем все содержимое вкладок
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-            });
-
-            // Добавляем активный класс текущей вкладке
-            this.classList.add('active');
-
-            // Показываем соответствующее содержимое
-            const tabId = this.getAttribute('data-tab');
-            const contentId = tabId + '-tab';
-            const content = document.getElementById(contentId);
-
-            if (content) {
-                content.classList.add('active');
+            // Находим контент вкладки
+            const tabContent = document.getElementById(tabId);
+            if (!tabContent) {
+                console.error(`Вкладка с id ${tabId} не найдена`);
+                return;
             }
-        });
-    });
 
-    // Активируем первую вкладку по умолчанию
-    if (tabs.length > 0) {
-        tabs[0].click();
-    }
-}
-
-// export function activateTab(tabId) {
-//     // Активация выбранной вкладки
-//     document.querySelectorAll('.tab-content').forEach(tab => {
-//         tab.classList.remove('active');
-//     });
-//     document.getElementById(tabId).classList.add('active');
-//
-//     document.querySelectorAll('.tab').forEach(tab => {
-//         tab.classList.remove('active');
-//         if(tab.dataset.tab === tabId) {
-//             tab.classList.add('active');
-//         }
-//     });
-// }
-
-export function activateTab(tabId) {
-    // Скрыть все вкладки
-    document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.classList.remove('active');
-    });
-
-    // Показать нужную вкладку
-    const targetTab = document.getElementById(tabId);
-    if (targetTab) {
-        targetTab.classList.add('active');
-    }
-
-    // Обновить активное состояние кнопок вкладок
-    document.querySelectorAll('.tab').forEach(tab => {
-        tab.classList.toggle('active', tab.dataset.tab === tabId);
-    });
-}
-
-export function initTabs() {
-    const tabs = document.querySelectorAll('.tab');
-
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            // Удаляем активный класс у всех вкладок
-            tabs.forEach(t => t.classList.remove('active'));
+            // Убираем активные классы
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
 
-            // Добавляем активный класс к текущей вкладке
-            tab.classList.add('active');
-            const tabId = tab.dataset.tab;
-            document.getElementById(tabId).classList.add('active');
+            // Добавляем активные классы
+            this.classList.add('active');
+            tabContent.classList.add('active');
         });
     });
+
+    // Активируем первую вкладку при загрузке
+    const firstTab = document.querySelector('.tab');
+    if (firstTab) {
+        firstTab.classList.add('active');
+        const firstTabId = firstTab.dataset.tab;
+        if (firstTabId) {
+            const firstContent = document.getElementById(firstTabId);
+            if (firstContent) firstContent.classList.add('active');
+        }
+    }
 }
