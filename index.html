@@ -26,15 +26,15 @@
     </header>
 
     <div class="tabs">
-        <button class="tab active" data-tab="daily-tracker">Ежедневный ввод</button>
-        <button class="tab" data-tab="workout-tab">Тренировка</button>
-        <button class="tab" data-tab="history-tab">История</button>
-        <button class="tab" data-tab="analytics-tab">Аналитика</button>
-        <button class="tab" data-tab="settings-tab">Настройки</button>
+        <button class="tab active" data-tab="daily">Ежедневный ввод</button>
+        <button class="tab" data-tab="workout">Тренировка</button>
+        <button class="tab" data-tab="history">История</button>
+        <button class="tab" data-tab="analytics">Аналитика</button>
+        <button class="tab" data-tab="settings">Настройки</button>
     </div>
 
     <!-- Вкладка ежедневного ввода -->
-    <div id="daily-tracker" class="tab-content active">
+    <div id="daily" class="tab-content active">
         <form id="daily-form">
             <div class="form-group time-input-container">
                 <input type="date" id="entry-date" hidden>
@@ -106,8 +106,8 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="workout"><i class="fas fa-dumbbell"></i> Тренировка:</label>
-                    <select id="workout">
+                    <label for="workout-data"><i class="fas fa-dumbbell"></i> Тренировка:</label>
+                    <select id="workout-data">
                         <option value="none">Нет</option>
                         <option value="light">Легкая</option>
                         <option value="medium">Средняя</option>
@@ -146,7 +146,7 @@
     </div>
 
     <!-- Вкладка тренировки -->
-    <div class="tab-content" id="workout-tab">
+    <div id="workout" class="tab-content">
         <form id="workout-form">
             <input type="hidden" id="exercise-id">
 
@@ -197,7 +197,7 @@
     </div>
 
     <!-- Вкладка "Аналитика" -->
-    <div class="tab-content" id="analytics-tab">
+    <div class="tab-content" id="analytics">
         <h2>📊 Аналитика</h2>
         <canvas id="sleep-chart"></canvas>
         <canvas id="energy-chart"></canvas>
@@ -205,7 +205,7 @@
     </div>
 
     <!-- Вкладка "История" -->
-    <div class="tab-content" id="history-tab">
+    <div id="history" class="tab-content">
         <h2>🗄️ История</h2>
         <div class="history-controls">
             <select id="history-date">
@@ -217,7 +217,7 @@
     </div>
 
     <!-- Вкладка "Настройки" -->
-    <div class="tab-content" id="settings-tab">
+    <div class="tab-content" id="settings">
         <h2>⚙️ Настройки</h2>
         <form id="settings-form">
             <div class="form-group">

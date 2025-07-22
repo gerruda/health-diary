@@ -10,7 +10,6 @@ export function initHistory() {
     document.getElementById('history-date')?.addEventListener('change', loadHistoryData);
 }
 
-// history.js
 export function loadHistoryData() {
     const healthData = getHealthData();
     const workoutHistory = getWorkoutHistory();
@@ -111,11 +110,14 @@ export function loadHistoryData() {
 
 // Функция редактирования записи здоровья
 export function editHealthEntry(date, time) {
-    activateTab('history');
+    activateTab('daily'); // Изменено с 'daily-tracker' на 'daily'
 
     // Устанавливаем дату и время
-    document.getElementById('entry-date').value = date;
-    document.getElementById('entry-time').value = time;
+    const dateInput = document.getElementById('entry-date');
+    if (dateInput) dateInput.value = date;
+
+    const timeInput = document.getElementById('entry-time');
+    if (timeInput) timeInput.value = time;
 
     // Загружаем данные
     const healthData = getHealthData();
@@ -123,8 +125,6 @@ export function editHealthEntry(date, time) {
 
     if (entry) {
         populateForm(entry);
-
-        // Устанавливаем флаг редактирования
         document.getElementById('daily-form').dataset.editing = `${date}|${time}`;
     }
 }

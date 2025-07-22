@@ -59,22 +59,26 @@ export function moodToNumber(mood) {
 }
 
 export function activateTab(tabId) {
-    // Находим кнопку вкладки и контент
-    const tab = document.querySelector(`.tab[data-tab="${tabId}"]`);
-    const content = document.getElementById(tabId);
+    try {
+        // Проверяем существование вкладки
+        const tab = document.querySelector(`.tab[data-tab="${tabId}"]`);
+        const content = document.getElementById(tabId);
 
-    if (!tab || !content) {
-        console.error(`Вкладка ${tabId} не найдена`);
-        return;
+        if (!tab || !content) {
+            console.error(`Вкладка ${tabId} не найдена`);
+            return;
+        }
+
+        // Убираем активные классы
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+        // Добавляем активные классы
+        tab.classList.add('active');
+        content.classList.add('active');
+    } catch (e) {
+        console.error('Ошибка активации вкладки:', e);
     }
-
-    // Убираем активные классы
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-
-    // Добавляем активные классы
-    tab.classList.add('active');
-    content.classList.add('active');
 }
 
 export function initTabs() {

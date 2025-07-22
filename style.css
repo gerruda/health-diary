@@ -87,14 +87,6 @@ header h1 {
     display: block;
 }
 
-/* Форма */
-.form-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 20px;
-    margin-bottom: 25px;
-}
-
 .form-group {
     margin-bottom: 15px;
 }
@@ -550,7 +542,15 @@ button {
 }
 
 .time-input-container {
-    display: flex;
+    display: none;
     align-items: center;
     gap: 10px;
+}
+
+/* Обеспечим видимость других элементов */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
 }

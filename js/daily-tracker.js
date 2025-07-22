@@ -18,9 +18,18 @@ export function initDailyTracker() {
     const dateInput = document.getElementById('entry-date');
     if (dateInput) dateInput.value = dateStr;
 
-    // Инициализация времени
-    const timeInput = document.getElementById('entry-time') || createTimeInput();
-    timeInput.value = today.toTimeString().substring(0, 5);
+    // Инициализация времени - только если контейнер существует
+    const timeContainer = document.querySelector('.time-input-container');
+    if (timeContainer) {
+        let timeInput = document.getElementById('entry-time');
+        if (!timeInput) {
+            timeInput = document.createElement('input');
+            timeInput.type = 'time';
+            timeInput.id = 'entry-time';
+            timeContainer.appendChild(timeInput);
+        }
+        timeInput.value = today.toTimeString().substring(0, 5);
+    }
 
     // Инициализация RPE
     initRPEVisibility();
@@ -30,22 +39,6 @@ export function initDailyTracker() {
 
     // Обработка формы
     dailyForm.addEventListener('submit', (e) => handleDailySubmit(e, dateStr));
-}
-
-function createTimeInput() {
-    const timeInput = document.createElement('input');
-    timeInput.type = 'time';
-    timeInput.id = 'entry-time';
-
-    const container = document.querySelector('.time-input-container');
-    if (container) {
-        container.appendChild(timeInput);
-    } else {
-        const lastGroup = document.querySelector('.form-group:last-child');
-        if (lastGroup) lastGroup.prepend(timeInput);
-    }
-
-    return timeInput;
 }
 
 function initRPEVisibility() {
@@ -81,26 +74,33 @@ function loadTodayData(date) {
 }
 
 export function populateForm(data) {
-    if (data.id) document.getElementById('entry-id').value = data.id;
-    if (data.pulse) document.getElementById('pulse').value = data.pulse;
-    if (data.sleepDuration) {
-        const [hours, minutes] = data.sleepDuration.split(':');
-        document.getElementById('sleep-hours').value = hours;
-        document.getElementById('sleep-minutes').value = minutes;
-    }
+    // Добавим проверки перед установкой значений
+    const setValue = (id, value) => {
+        const element = document.getElementById(id);
+        if (element && value !== undefined && value !== null) {
+            element.value = value;
+        }
+    };
+
+    setValue('pulse', data.pulse);
+    setValue('sleep-hours', data.sleepDuration ? data.sleepDuration.split(':')[0] : '');
+    setValue('sleep-minutes', data.sleepDuration ? data.sleepDuration.split(':')[1] : '');
+    setValue('weight', data.weight);
+    setValue('weight-condition', data.weightCondition);
+    setValue('steps', data.steps);
+    setValue('calories', data.calories);
+    setValue('alcohol', data.alcohol);
+    setValue('workout-data', data.workout);
+    setValue('rpe', data.rpe);
+    setValue('mood', data.mood);
+    setValue('notes', data.notes);
+    setValue('entry-time', data.time);
+
+    // Радио кнопки энергии
     if (data.energyLevel) {
-        document.querySelector(`input[name="energy"][value="${data.energyLevel}"]`).checked = true;
+        const energyRadio = document.querySelector(`input[name="energy"][value="${data.energyLevel}"]`);
+        if (energyRadio) energyRadio.checked = true;
     }
-    if (data.weight) document.getElementById('weight').value = data.weight;
-    if (data.weightCondition) document.getElementById('weight-condition').value = data.weightCondition;
-    if (data.steps) document.getElementById('steps').value = data.steps;
-    if (data.calories) document.getElementById('calories').value = data.calories;
-    if (data.alcohol) document.getElementById('alcohol').value = data.alcohol;
-    if (data.workout) document.getElementById('workout').value = data.workout;
-    if (data.rpe) document.getElementById('rpe').value = data.rpe;
-    if (data.mood) document.getElementById('mood').value = data.mood;
-    if (data.notes) document.getElementById('notes').value = data.notes;
-    if (data.time) document.getElementById('entry-time').value = data.time;
 }
 
 function handleDailySubmit(e, date) {

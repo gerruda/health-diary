@@ -1,22 +1,9 @@
 import {
     getExercisesList,
-    saveExercisesList,
     getWorkoutHistory,
     saveWorkoutHistory
 } from './storage.js';
 import { activateTab } from './utils.js';
-
-function createSetElement(weight, reps, index) {
-    const setElement = document.createElement('div');
-    setElement.className = 'weight-entry';
-    setElement.innerHTML = `
-        <label>Подход ${index + 1}</label>
-        <input type="number" placeholder="Вес" value="${weight || ''}">
-        <input type="number" placeholder="Повторения" value="${reps || ''}">
-        <button class="btn-remove-weight">×</button>
-    `;
-    return setElement;
-}
 
 let setCount = 0;
 
@@ -39,19 +26,28 @@ export function initWorkoutTracker() {
 }
 
 // Заполнение формы тренировки
-function populateWorkoutForm(exercise) {
-    document.getElementById('exercise-name').value = exercise.name;
-    document.getElementById('rpe-workout').value = exercise.rpe || '';
+export function populateWorkoutForm(exercise) {
+    // Проверка элементов перед установкой значений
+    const nameInput = document.getElementById('exercise-name');
+    if (nameInput) nameInput.value = exercise.name || '';
 
-    // Очищаем существующие подходы
-    const setsContainer = document.getElementById('sets-container');
-    setsContainer.innerHTML = '';
+    const rpeInput = document.getElementById('workout-rpe');
+    if (rpeInput) rpeInput.value = exercise.rpe || '';
 
-    // Добавляем подходы
-    exercise.sets.forEach((set, index) => {
-        const setElement = createSetElement(set.weight, set.reps, index);
-        setsContainer.appendChild(setElement);
-    });
+    const setsContainer = document.getElementById('sets-body');
+    if (setsContainer) {
+        setsContainer.innerHTML = '';
+
+        exercise.sets.forEach((set, index) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><input type="number" class="set-weight" step="0.1" min="0" value="${set.weight || ''}"></td>
+                <td><input type="number" class="set-reps" min="1" value="${set.reps || ''}"></td>
+                <td><button type="button" class="btn-remove-set"><i class="fas fa-times"></i></button></td>
+            `;
+            setsContainer.appendChild(row);
+        });
+    }
 
     // Обновляем счетчик подходов
     setCount = exercise.sets.length;
@@ -87,9 +83,6 @@ function saveWorkout(e) {
     const workoutHistory = getWorkoutHistory();
     const date = new Date().toISOString().split('T')[0];
     const exerciseName = document.getElementById('exercise-name').value;
-    const sets = [];
-
-    const rpe = document.getElementById('workout-rpe').value;
 
     // Сохранение упражнения
     const exerciseData = {
@@ -131,52 +124,8 @@ function saveWorkout(e) {
     addSetRow();
 }
 
-function updateExercisesList(date) {
-    const workoutHistory = getWorkoutHistory(); // Получаем данные из хранилища
-    const container = document.getElementById('exercises-list');
-    container.innerHTML = '';
-
-    if (!workoutHistory[date] || workoutHistory[date].length === 0) {
-        container.innerHTML = '<p>Упражнений пока нет</p>';
-        return;
-    }
-
-    workoutHistory[date].forEach((exercise, index) => {
-        const exerciseEl = document.createElement('div');
-        exerciseEl.className = 'exercise-card';
-
-        let setsHtml = '';
-        exercise.sets.forEach((set, i) => {
-            setsHtml += `<div>Подход ${i+1}: ${set.weight} кг × ${set.reps} повторений</div>`;
-        });
-
-        exerciseEl.innerHTML = `
-      <div class="exercise-header">
-        <h4>${exercise.name}</h4>
-        <div class="exercise-rpe">RPE: ${exercise.rpe || 'не указано'}</div>
-        <button class="delete-exercise" data-index="${index}">
-          <i class="fas fa-trash"></i>
-        </button>
-      </div>
-      <div class="exercise-sets">${setsHtml}</div>
-    `;
-
-        container.appendChild(exerciseEl);
-    });
-
-    // Добавляем обработчики удаления
-    document.querySelectorAll('.delete-exercise').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const index = this.getAttribute('data-index');
-            workoutHistory[date].splice(index, 1);
-            localStorage.setItem('workoutHistory', JSON.stringify(workoutHistory));
-            updateExercisesList(date);
-        });
-    });
-}
-
 export function editWorkoutEntry(date, id) {
-    activateTab('workout-tab');
+    activateTab('workout');
 
     const workoutHistory = getWorkoutHistory();
     const exercise = workoutHistory[date].find(item => item.id == id);
