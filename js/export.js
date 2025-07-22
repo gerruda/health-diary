@@ -42,7 +42,6 @@ export function initExport() {
         historyTab.appendChild(exportSection);
     }
 
-    // Обработчики событий
     document.getElementById('export-range')?.addEventListener('change', function() {
         document.getElementById('custom-dates').style.display =
             this.value === 'custom' ? 'block' : 'none';
@@ -52,7 +51,6 @@ export function initExport() {
 }
 
 function exportToExcel() {
-    // Проверяем доступность библиотеки
     if (typeof XLSX === 'undefined') {
         alert('Библиотека экспорта не загружена. Обновите страницу.');
         return;
@@ -127,14 +125,24 @@ function prepareHealthData(range) {
         const currentDate = new Date(date);
         if (currentDate >= startDate && currentDate <= endDate) {
             healthData[date].forEach(entry => {
+                // Форматируем взвешивания
+                let weighingsText = '';
+                if (entry.weighings && entry.weighings.length > 0) {
+                    weighingsText = entry.weighings.map(w =>
+                        `${w.weight} кг${w.condition ? ` (${w.condition})` : ''}`
+                    ).join('; ');
+                } else if (entry.weight) {
+                    // Совместимость со старым форматом
+                    weighingsText = `${entry.weight} кг${entry.weightCondition ? ` (${entry.weightCondition})` : ''}`;
+                }
+
+                // Создаем одну запись за день
                 exportData.push({
                     Дата: date,
-                    Время: entry.time || '',
                     Пульс: entry.pulse || '',
                     Сон: entry.sleepDuration || '',
                     'Уровень энергии': entry.energyLevel || '',
-                    Вес: entry.weight || '',
-                    'Условие взвешивания': entry.weightCondition || '',
+                    'Взвешивания': weighingsText,
                     Шаги: entry.steps || '',
                     Калории: entry.calories || '',
                     Алкоголь: entry.alcohol || '',
@@ -159,16 +167,20 @@ function prepareWorkoutData(range) {
         const currentDate = new Date(date);
         if (currentDate >= startDate && currentDate <= endDate) {
             workoutHistory[date].forEach(exercise => {
-                exercise.sets.forEach((set, index) => {
-                    exportData.push({
-                        Дата: date,
-                        Упражнение: exercise.name,
-                        Подход: index + 1,
-                        Вес: set.weight,
-                        Повторения: set.reps,
-                        RPE: exercise.rpe || '',
-                        '1ПМ': calculateOneRepMax(set.weight, set.reps).toFixed(1)
-                    });
+                // Форматируем подходы
+                const setsText = exercise.sets.map((set, index) =>
+                    `Подход ${index+1}: ${set.weight} кг × ${set.reps}`
+                ).join('; ');
+
+                // Создаем запись для каждого упражнения
+                exportData.push({
+                    Дата: date,
+                    Упражнение: exercise.name,
+                    Подходы: setsText,
+                    RPE: exercise.rpe || '',
+                    '1ПМ': exercise.sets.map(set =>
+                        calculateOneRepMax(set.weight, set.reps).toFixed(1)
+                    ).join('; ')
                 });
             });
         }

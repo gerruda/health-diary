@@ -72,17 +72,12 @@
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="weight"><i class="fas fa-weight-scale"></i> Вес (кг):</label>
-                    <input type="number" id="weight" step="0.1" min="30" max="200">
-                </div>
-
-                <div class="form-group">
-                    <label for="weight-condition">Условия взвешивания:</label>
-                    <div class="combo-input">
-                        <input type="text" id="weight-condition" list="condition-list" placeholder="Выберите или введите">
-                        <datalist id="condition-list"></datalist>
-                    </div>
+                <div class="form-group full-width">
+                    <label><i class="fas fa-weight-scale"></i> Взвешивания:</label>
+                    <div id="weighings-container"></div>
+                    <button type="button" id="add-weight" class="btn-add">
+                        <i class="fas fa-plus"></i> Добавить взвешивание
+                    </button>
                 </div>
 
                 <div class="form-group">

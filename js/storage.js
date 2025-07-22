@@ -1,6 +1,24 @@
 // Получение данных
 export function getHealthData() {
-    return JSON.parse(localStorage.getItem('healthData')) || {};
+    const rawData = JSON.parse(localStorage.getItem('healthData')) || {};
+
+    // Миграция старых данных в новый формат
+    for (const date in rawData) {
+        rawData[date] = rawData[date].map(entry => {
+            if (entry.weight && !entry.weighings) {
+                return {
+                    ...entry,
+                    weighings: [{
+                        weight: entry.weight,
+                        condition: entry.weightCondition || ''
+                    }]
+                };
+            }
+            return entry;
+        });
+    }
+
+    return rawData;
 }
 
 export function getSettings() {
@@ -62,7 +80,30 @@ export function getWorkoutHistory() {
     return history;
 }
 
-// Формула расчета 1ПМ
-function calculateOneRepMax(weight, reps) {
-    return weight * (1 + reps / 30);
+export function migrateData() {
+    const healthData = JSON.parse(localStorage.getItem('healthData')) || {};
+    let needsMigration = false;
+
+    for (const date in healthData) {
+        healthData[date] = healthData[date].map(entry => {
+            if (entry.weight && !entry.weighings) {
+                needsMigration = true;
+                return {
+                    ...entry,
+                    weighings: [{
+                        weight: entry.weight,
+                        condition: entry.weightCondition || ''
+                    }],
+                    weight: undefined,
+                    weightCondition: undefined
+                };
+            }
+            return entry;
+        });
+    }
+
+    if (needsMigration) {
+        localStorage.setItem('healthData', JSON.stringify(healthData));
+        console.log('Данные успешно мигрированы');
+    }
 }

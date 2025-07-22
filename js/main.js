@@ -5,6 +5,7 @@ import { initAnalytics } from './analytics.js';
 import { initSettings } from './settings.js';
 import { initExport } from './export.js';
 import { initTabs } from './utils.js';
+import {migrateData} from "./storage.js";
 
 // Форматирование даты (вынесем позже в utils.js)
 function formatDate(date, options) {
@@ -15,6 +16,7 @@ function formatDate(date, options) {
 document.addEventListener('DOMContentLoaded', () => {
     // Сначала инициализация вкладок
     initTabs();
+    migrateData();
 
     // Затем инициализация всех модулей с проверкой
     try {

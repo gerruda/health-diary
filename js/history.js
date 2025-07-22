@@ -50,23 +50,36 @@ export function loadHistoryData() {
         // Записи о здоровье
         if (healthData[date] && healthData[date].length > 0) {
             healthData[date].forEach(entry => {
+                // ... другие поля ...
+
+                // Вес и условия взвешивания
+                let weighingsHtml = '';
+                if (entry.weighings && entry.weighings.length > 0) {
+                    weighingsHtml = '<p>Взвешивания:</p><ul class="weighings-list">';
+                    entry.weighings.forEach((w) => {
+                        weighingsHtml += `<li>${w.weight} кг${w.condition ? ` (${w.condition})` : ''}</li>`;
+                    });
+                    weighingsHtml += '</ul>';
+                } else if (entry.weight) {
+                    // Совместимость со старым форматом
+                    weighingsHtml = `<p>Вес: ${entry.weight} кг${entry.weightCondition ? ` (${entry.weightCondition})` : ''}</p>`;
+                }
+
                 const entryEl = document.createElement('div');
                 entryEl.className = 'history-entry';
                 entryEl.innerHTML = `
-                    <div class="entry-header">
-                        <span class="entry-time">${entry.time}</span>
-                        <div class="entry-actions">
-                            <button class="edit-btn" data-type="health" data-date="${date}" data-time="${entry.time}">✏️</button>
-                            <button class="delete-btn" data-type="health" data-date="${date}" data-time="${entry.time}">🗑️</button>
-                        </div>
+                <div class="entry-header">
+                    <span class="entry-time">${entry.time}</span>
+                    <div class="entry-actions">
+                        <button class="edit-btn" data-type="health" data-date="${date}" data-time="${entry.time}">✏️</button>
+                        <button class="delete-btn" data-type="health" data-date="${date}" data-time="${entry.time}">🗑️</button>
                     </div>
-                    ${entry.pulse ? `<p>Пульс: ${entry.pulse} уд/мин</p>` : ''}
-                    ${entry.sleepDuration ? `<p>Сон: ${entry.sleepDuration}</p>` : ''}
-                    ${entry.weight ? `<p>Вес: ${entry.weight} кг</p>` : ''}
-                    ${entry.steps ? `<p>Шаги: ${entry.steps}</p>` : ''}
-                    ${entry.calories ? `<p>Калории: ${entry.calories} ккал</p>` : ''}
-                    ${entry.notes ? `<p>Заметки: ${entry.notes}</p>` : ''}
-                `;
+                </div>
+                ${entry.pulse ? `<p>Пульс: ${entry.pulse} уд/мин</p>` : ''}
+                ${entry.sleepDuration ? `<p>Сон: ${entry.sleepDuration}</p>` : ''}
+                ${weighingsHtml}
+                <!-- остальные поля ... -->
+            `;
                 historyList.appendChild(entryEl);
             });
         }

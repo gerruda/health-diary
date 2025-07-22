@@ -5,7 +5,6 @@ import {
     saveWeightConditions,
 } from './storage.js';
 import { loadHistoryData } from './history.js';
-import { activateTab } from "./utils.js";
 
 export function initDailyTracker() {
     const dailyForm = document.getElementById('daily-form');
@@ -33,6 +32,12 @@ export function initDailyTracker() {
 
     // Инициализация RPE
     initRPEVisibility();
+
+    // Инициализация контейнера взвешиваний
+    const addWeightBtn = document.getElementById('add-weight');
+    if (addWeightBtn) {
+        addWeightBtn.addEventListener('click', addWeightEntry);
+    }
 
     // Загрузка данных
     loadTodayData(dateStr);
@@ -101,6 +106,19 @@ export function populateForm(data) {
         const energyRadio = document.querySelector(`input[name="energy"][value="${data.energyLevel}"]`);
         if (energyRadio) energyRadio.checked = true;
     }
+
+    // Вес и условия взвешивания (новая структура)
+    const weighingsContainer = document.getElementById('weighings-container');
+    weighingsContainer.innerHTML = '';
+
+    if (data.weighings && data.weighings.length > 0) {
+        data.weighings.forEach(w => addWeightEntry(w.weight, w.condition));
+    } else if (data.weight) {
+        // Совместимость со старым форматом
+        addWeightEntry(data.weight, data.weightCondition);
+    } else {
+        addWeightEntry(); // Пустое поле
+    }
 }
 
 function handleDailySubmit(e, date) {
@@ -110,6 +128,25 @@ function handleDailySubmit(e, date) {
     const weightConditions = getWeightConditions();
     const time = document.getElementById('entry-time').value;
 
+    // Сбор данных о взвешиваниях
+    const weighings = [];
+    document.querySelectorAll('.weight-entry').forEach(entry => {
+        const weight = entry.querySelector('.weight-value').value;
+        const condition = entry.querySelector('.weight-condition').value;
+
+        if (weight) {
+            weighings.push({
+                weight: parseFloat(weight),
+                condition: condition || ''
+            });
+
+            // Сохранение условия взвешивания
+            if (condition && !weightConditions.includes(condition)) {
+                weightConditions.push(condition);
+            }
+        }
+    });
+
     // Сбор данных из формы
     const entry = {
         id: Date.now(),
@@ -117,8 +154,7 @@ function handleDailySubmit(e, date) {
         pulse: document.getElementById('pulse').value || null,
         sleepDuration: `${document.getElementById('sleep-hours').value || 0}:${document.getElementById('sleep-minutes').value || 0}`,
         energyLevel: document.querySelector('input[name="energy"]:checked')?.value || null,
-        weight: document.getElementById('weight').value || null,
-        weightCondition: document.getElementById('weight-condition').value || null,
+        weighings: weighings.length > 0 ? weighings : null,
         steps: document.getElementById('steps').value || null,
         calories: document.getElementById('calories').value || null,
         alcohol: document.getElementById('alcohol').value || null,
@@ -170,10 +206,26 @@ function handleDailySubmit(e, date) {
     }
 }
 
-export function editHealthEntry(date, id) {
-    activateTab('daily-tracker');
-    const healthData = getHealthData();
-    const entry = healthData[date].find(item => item.id == id);
-    populateForm(entry);
-    document.getElementById('entry-date').value = date;
+function addWeightEntry(weight = '', condition = '') {
+    const container = document.getElementById('weighings-container');
+    const entry = document.createElement('div');
+    entry.className = 'weight-entry';
+    entry.innerHTML = `
+        <input type="number" class="weight-value" placeholder="Вес (кг)" 
+               step="0.1" min="30" max="200" value="${weight}">
+        <input type="text" class="weight-condition" list="condition-list" 
+               placeholder="Условие" value="${condition}">
+        <button type="button" class="btn-remove-weight">×</button>
+    `;
+    container.appendChild(entry);
+
+    // Обработчик удаления
+    entry.querySelector('.btn-remove-weight').addEventListener('click', () => {
+        if (document.querySelectorAll('.weight-entry').length > 1) {
+            entry.remove();
+        } else {
+            entry.querySelector('.weight-value').value = '';
+            entry.querySelector('.weight-condition').value = '';
+        }
+    });
 }
