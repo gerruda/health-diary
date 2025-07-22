@@ -5,7 +5,7 @@ import {
     saveWeightConditions,
 } from './storage.js';
 import { loadHistoryData } from './history.js';
-import { activateTab } from "./utils.js"; // Импортируем функцию обновления истории
+import { activateTab } from "./utils.js";
 
 export function initDailyTracker() {
     const dailyForm = document.getElementById('daily-form');
@@ -165,7 +165,9 @@ function handleDailySubmit(e, date) {
 
     // Оповещение и обновление истории
     alert('Данные сохранены!');
-    loadHistoryData(); // Обновляем историю
+    if (typeof loadHistoryData === 'function') {
+        loadHistoryData(); // Обновляем историю
+    }
 }
 
 export function editHealthEntry(date, id) {

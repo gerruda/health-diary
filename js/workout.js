@@ -4,6 +4,7 @@ import {
     saveWorkoutHistory,
     saveExercisesList
 } from './storage.js';
+import {loadHistoryData} from "./history.js";
 
 let setCount = 0;
 
@@ -175,6 +176,11 @@ function saveWorkout(e) {
     saveWorkoutHistory(workoutHistory);
     alert('Тренировка сохранена!');
     clearWorkoutForm();
+
+    // Обновляем историю
+    if (typeof loadHistoryData === 'function') {
+        loadHistoryData();
+    }
 }
 
 function clearWorkoutForm() {
