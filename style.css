@@ -17,20 +17,22 @@
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f5f7fa;
-    color: #333;
     line-height: 1.6;
     padding: 20px;
     min-height: 100vh;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    transition: background-color 0.5s ease, color 0.5s ease;
 }
 
 .container {
     max-width: 1200px;
     margin: 0 auto;
-    background: white;
     border-radius: 15px;
-    box-shadow: 0 5px 25px rgba(0,0,0,0.08);
     overflow: hidden;
+    transition: background-color 0.5s ease, box-shadow 0.5s ease;
+    background: var(--card-bg);
+    box-shadow: 0 5px 25px rgba(0,0,0,0.15);
 }
 
 header {
@@ -146,7 +148,8 @@ input:focus, select:focus, textarea:focus {
     height: 35px;
     line-height: 35px;
     text-align: center;
-    background: #eee;
+    background: var(--light);
+    color: var(--text-color);
     border-radius: 50%;
     cursor: pointer;
     transition: all 0.3s;
@@ -212,9 +215,8 @@ button {
 }
 
 .btn-add {
-    background: #f1f2f6;
-    color: var(--dark);
-    border: 1px solid #ddd;
+    background-color: var(--light);
+    color: var(--text-color);
 }
 
 .btn-add:hover {
@@ -222,7 +224,7 @@ button {
 }
 
 .btn-export {
-    background: #27ae60;
+    background-color: var(--secondary);
     color: white;
 }
 
@@ -691,3 +693,111 @@ button {
 .weighings-list li {
     padding: 3px 0;
 }
+
+/* Добавьте в конец style.css */
+:root {
+    /* Цвета светлой темы */
+    --primary: #3498db;
+    --secondary: #2ecc71;
+    --danger: #e74c3c;
+    --warning: #f39c12;
+    --dark: #2c3e50;
+    --light: #ecf0f1;
+    --gray: #95a5a6;
+    --bg-color: #f5f7fa;
+    --text-color: #333;
+    --card-bg: white;
+    --header-bg: linear-gradient(135deg, var(--primary), #1a5f9e);
+    --border-color: #ddd;
+    --input-bg: white;
+    --input-text: #333;
+    --tab-bg: var(--light);
+    --history-entry-bg: #f8f9fa;
+}
+
+[data-theme="dark"] {
+    /* Цвета темной темы */
+    --primary: #1e90ff;
+    --secondary: #3cb371;
+    --danger: #ff6b6b;
+    --warning: #ffd166;
+    --dark: #121212;
+    --light: #2d2d2d;
+    --gray: #7b7b7b;
+    --bg-color: #1a1a1a;
+    --text-color: #e0e0e0;
+    --card-bg: #222;
+    --header-bg: linear-gradient(135deg, #1a2b45, #0f1c2e);
+    --border-color: #444;
+    --input-bg: #333;
+    --input-text: #e0e0e0;
+    --tab-bg: #2d2d2d;
+    --history-entry-bg: #2d2d2d;
+}
+
+
+header {
+    background: var(--header-bg);
+}
+
+.tabs {
+    background: var(--tab-bg);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.tab {
+    background: none;
+    color: var(--text-color);
+}
+
+.tab.active {
+    background: var(--card-bg);
+    color: var(--primary);
+}
+
+input, select, textarea {
+    background-color: var(--input-bg);
+    color: var(--input-text);
+    border-color: var(--border-color);
+}
+
+.history-entry, .history-exercise {
+    background: var(--history-entry-bg);
+    border-left-color: var(--primary);
+}
+
+.theme-toggle {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: white;
+    font-size: 1.2rem;
+    transition: all 0.3s;
+}
+
+.theme-toggle:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
+.history-controls select,
+.history-controls input {
+    background-color: var(--input-bg);
+    color: var(--input-text);
+    border-color: var(--border-color);
+}
+
+button {
+    background-color: var(--primary);
+    color: white;
+}
+

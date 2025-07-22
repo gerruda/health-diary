@@ -45,6 +45,8 @@ function initWeightChart() {
             // ... настройки ...
         }
     });
+    Chart.defaults.color = 'var(--text-color)';
+    Chart.defaults.borderColor = 'var(--border-color)';
 }
 
 // Функция для подготовки данных веса для графиков аналитики

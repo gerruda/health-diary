@@ -6,6 +6,7 @@ import { initSettings } from './settings.js';
 import { initExport } from './export.js';
 import { initTabs } from './utils.js';
 import {migrateData} from "./storage.js";
+import { initTheme } from './theme.js';
 
 // Форматирование даты (вынесем позже в utils.js)
 function formatDate(date, options) {
@@ -19,6 +20,11 @@ document.addEventListener('DOMContentLoaded', () => {
     migrateData();
 
     // Затем инициализация всех модулей с проверкой
+    try {
+        initTheme();
+    } catch (e) {
+        console.error('Ошибка инициализации темы:', e);
+    }
     try {
         initDailyTracker();
     } catch (e) {
