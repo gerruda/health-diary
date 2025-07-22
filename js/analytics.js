@@ -1,109 +1,31 @@
 export function initAnalytics() {
-    const updateChartBtn = document.getElementById('update-chart');
-    if (!updateChartBtn) return;
+    // Проверяем существование элементов перед работой с ними
+    const sleepChartEl = document.getElementById('sleep-chart');
+    const energyChartEl = document.getElementById('energy-chart');
+    const weightChartEl = document.getElementById('weight-chart');
 
-    // Установка дат по умолчанию
-    const today = new Date();
-    chartStartDateEl.valueAsDate = new Date(today.getFullYear(), today.getMonth(), 1);
-    chartEndDateEl.valueAsDate = today;
+    if (!sleepChartEl || !energyChartEl || !weightChartEl) {
+        console.warn('Один или несколько элементов графиков не найдены');
+        return;
+    }
 
-    // Обработчик обновления графика
-    updateChartBtn.addEventListener('click', updateChart);
-
-    // Первоначальное обновление графика
-    updateChart();
+    // Инициализация графиков (заглушки)
+    initChart(sleepChartEl, 'Длительность сна (часы)', [7, 8, 7.5, 6, 8, 9, 7], 'rgba(54, 162, 235, 0.2)');
+    initChart(energyChartEl, 'Уровень энергии', [3, 4, 5, 4, 3, 4, 5], 'rgba(255, 99, 132, 0.2)');
+    initChart(weightChartEl, 'Вес (кг)', [75.2, 74.8, 74.5, 74.6, 74.3, 74.1, 73.9], 'rgba(75, 192, 192, 0.2)');
 }
 
-function updateChart() {
-    const chartType = chartTypeEl.value;
-    const startDate = new Date(chartStartDateEl.value);
-    const endDate = new Date(chartEndDateEl.value);
-
-    // Собираем данные для графика
-    const labels = [];
-    const data = [];
-
-    let currentDate = new Date(startDate);
-    while (currentDate <= endDate) {
-        const dateStr = currentDate.toISOString().split('T')[0];
-        labels.push(dateStr);
-
-        if (healthData[dateStr]) {
-            // Для разных типов данных разная логика агрегации
-            switch(chartType) {
-                case 'weight':
-                    // Берем последнее взвешивание за день
-                    const weightEntry = [...healthData[dateStr]].reverse()
-                        .find(entry => entry.weight !== null);
-                    data.push(weightEntry ? parseFloat(weightEntry.weight) : null);
-                    break;
-
-                case 'pulse':
-                    // Средний пульс за день
-                    const pulses = healthData[dateStr]
-                        .filter(entry => entry.pulse !== null)
-                        .map(entry => parseInt(entry.pulse));
-                    data.push(pulses.length ? (pulses.reduce((a, b) => a + b, 0) / pulses.length) : null);
-                    break;
-
-                case 'sleep':
-                    // Общая продолжительность сна
-                    let totalSleep = 0;
-                    healthData[dateStr].forEach(entry => {
-                        if (entry.sleepDuration) {
-                            const [hours, minutes] = entry.sleepDuration.split(':').map(Number);
-                            totalSleep += hours + minutes / 60;
-                        }
-                    });
-                    data.push(totalSleep || null);
-                    break;
-
-                case 'energy':
-                    // Последняя оценка энергии
-                    const energyEntry = [...healthData[dateStr]].reverse()
-                        .find(entry => entry.energyLevel !== null);
-                    data.push(energyEntry ? parseInt(energyEntry.energyLevel) : null);
-                    break;
-
-                case 'steps':
-                    // Сумма шагов за день
-                    const steps = healthData[dateStr]
-                        .filter(entry => entry.steps !== null)
-                        .reduce((sum, entry) => sum + parseInt(entry.steps), 0);
-                    data.push(steps || null);
-                    break;
-
-                case 'mood':
-                    // Последняя оценка настроения
-                    const moodEntry = [...healthData[dateStr]].reverse()
-                        .find(entry => entry.mood !== null);
-                    const moodValue = moodEntry ? moodToNumber(moodEntry.mood) : null;
-                    data.push(moodValue);
-                    break;
-            }
-        } else {
-            data.push(null);
-        }
-
-        currentDate.setDate(currentDate.getDate() + 1);
-    }
-
-    // Уничтожаем предыдущий график, если он есть
-    if (currentChart) {
-        currentChart.destroy();
-    }
-
-    // Создаем новый график
-    const ctx = chartCanvas.getContext('2d');
-    currentChart = new Chart(ctx, {
+function initChart(canvas, label, data, bgColor) {
+    const ctx = canvas.getContext('2d');
+    new Chart(ctx, {
         type: 'line',
         data: {
-            labels: labels,
+            labels: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
             datasets: [{
-                label: getChartLabel(chartType),
+                label: label,
                 data: data,
                 borderColor: '#3498db',
-                backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                backgroundColor: bgColor,
                 borderWidth: 2,
                 tension: 0.3,
                 fill: true
@@ -111,10 +33,9 @@ function updateChart() {
         },
         options: {
             responsive: true,
-            maintainAspectRatio: false,
             scales: {
                 y: {
-                    beginAtZero: chartType !== 'weight'
+                    beginAtZero: false
                 }
             }
         }

@@ -1,63 +1,88 @@
-import { getSettings, saveSettings } from './storage.js';
+import { getSettings, saveSettings, getHealthData } from './storage.js';
+
+// Глобальная переменная для хранения таймера
+let reminderTimer = null;
 
 export function initSettings() {
-    const saveSettingsBtn = document.getElementById('save-settings');
-    if (!saveSettingsBtn) return;
+    const settingsForm = document.getElementById('settings-form');
+    if (!settingsForm) return;
 
     const settings = getSettings();
 
-    // Установка текущих настроек
-    document.getElementById('reminder-time').value = settings.reminderTime;
-    document.getElementById('reminder-active').checked = settings.reminderActive;
+    // Установка значений
+    document.getElementById('reminder-toggle').checked = settings.reminderActive || false;
+    document.getElementById('reminder-time').value = settings.reminderTime || '20:00';
 
     // Обработчик сохранения настроек
-    saveSettingsBtn.addEventListener('click', saveSettingsHandler);
+    settingsForm.addEventListener('submit', e => {
+        e.preventDefault();
 
-    // Проверка напоминаний
-    checkReminders();
-    setInterval(checkReminders, 60000);
+        const newSettings = {
+            reminderActive: document.getElementById('reminder-toggle').checked,
+            reminderTime: document.getElementById('reminder-time').value
+        };
+
+        saveSettings(newSettings);
+        alert('Настройки успешно сохранены!');
+
+        // Перезапускаем напоминания
+        setupReminders();
+    });
+
+    // Запуск напоминаний
+    setupReminders();
 }
 
-function saveSettingsHandler() {
-    const settings = {
-        reminderTime: document.getElementById('reminder-time').value,
-        reminderActive: document.getElementById('reminder-active').checked
-    };
+function setupReminders() {
+    // Очищаем предыдущий таймер
+    if (reminderTimer) {
+        clearInterval(reminderTimer);
+    }
 
-    saveSettings(settings);
-    alert('Настройки сохранены!');
+    const settings = getSettings();
+    if (!settings.reminderActive) return;
+
+    // Запускаем проверку каждую минуту
+    reminderTimer = setInterval(checkReminder, 60000);
+    checkReminder(); // Проверяем сразу после запуска
 }
 
-function checkReminders() {
+function checkReminder() {
+    const settings = getSettings();
     if (!settings.reminderActive) return;
 
     const now = new Date();
-    const [reminderHours, reminderMinutes] = settings.reminderTime.split(':').map(Number);
+    const [hours, minutes] = settings.reminderTime.split(':').map(Number);
 
-    if (
-        now.getHours() === reminderHours &&
-        now.getMinutes() === reminderMinutes &&
-        now.getSeconds() < 5 // Чтобы срабатывало только один раз в минуту
-    ) {
-        // Проверяем, были ли сегодня введены данные
+    // Проверяем совпадение времени
+    if (now.getHours() === hours && now.getMinutes() === minutes) {
         const today = new Date().toISOString().split('T')[0];
-        const hasEntries = healthData[today] && healthData[today].length > 0;
+        const healthData = getHealthData();
 
-        if (!hasEntries) {
-            if (Notification.permission === 'granted') {
-                new Notification('Дневник здоровья', {
-                    body: 'Пора внести данные за сегодня!'
-                });
-            } else if (Notification.permission !== 'denied') {
-                Notification.requestPermission().then(permission => {
-                    if (permission === 'granted') {
-                        new Notification('Дневник здоровья', {
-                            body: 'Пора внести данные за сегодня!'
-                        });
-                    }
-                });
-            }
+        // Проверяем, были ли внесены данные сегодня
+        if (!healthData[today] || healthData[today].length === 0) {
+            showNotification();
         }
     }
 }
 
+function showNotification() {
+    if (!('Notification' in window)) {
+        alert('Ваш браузер не поддерживает уведомления');
+        return;
+    }
+
+    if (Notification.permission === 'granted') {
+        new Notification('Дневник здоровья', {
+            body: 'Пора внести данные за сегодня!'
+        });
+    } else if (Notification.permission !== 'denied') {
+        Notification.requestPermission().then(permission => {
+            if (permission === 'granted') {
+                new Notification('Дневник здоровья', {
+                    body: 'Пора внести данные за сегодня!'
+                });
+            }
+        });
+    }
+}

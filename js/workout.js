@@ -85,6 +85,7 @@ function saveExercise(e) {
 }
 
 function updateExercisesList(date) {
+    const workoutHistory = getWorkoutHistory(); // Получаем данные из хранилища
     const container = document.getElementById('exercises-list');
     container.innerHTML = '';
 

@@ -489,3 +489,26 @@ button {
         font-size: 0.9rem;
     }
 }
+
+.history-entry, .history-exercise {
+    background: #f8f9fa;
+    border-left: 3px solid #3498db;
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.history-exercise {
+    border-left-color: #e74c3c;
+}
+
+.history-entry p, .history-exercise p {
+    margin: 5px 0;
+}
+
+.exercise-sets {
+    margin-top: 10px;
+    padding-left: 10px;
+    border-left: 2px dashed #ddd;
+}

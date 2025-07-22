@@ -2,77 +2,96 @@ import {
     getHealthData,
     saveHealthData,
     getWeightConditions,
-    saveWeightConditions
+    saveWeightConditions,
 } from './storage.js';
+import { loadHistoryData } from './history.js'; // Импортируем функцию обновления истории
 
 export function initDailyTracker() {
-    // Показ/скрытие поля RPE в зависимости от выбора тренировки
     const workoutSelect = document.getElementById('workout');
     const rpeContainer = document.getElementById('rpe-container');
-
-    workoutSelect.addEventListener('change', () => {
-        if (workoutSelect.value !== 'none') {
-            rpeContainer.style.display = 'block';
-        } else {
-            rpeContainer.style.display = 'none';
-        }
-    });
-
     const dailyForm = document.getElementById('daily-form');
+
     if (!dailyForm) return;
 
-    // Установка текущей даты
-    const entryDateInput = document.getElementById('entry-date');
-    if (entryDateInput) {
-        const today = new Date().toISOString().split('T')[0];
-        entryDateInput.value = today;
-    } else {
-        console.error('Элемент с ID "entry-date" не найден');
-    }
+    // Установка текущей даты и времени
+    const today = new Date();
+    const dateStr = today.toISOString().split('T')[0];
+    document.getElementById('entry-date').value = dateStr;
+
+    // Инициализация поля времени
+    const timeInput = document.createElement('input');
+    timeInput.type = 'time';
+    timeInput.id = 'entry-time';
+    timeInput.value = today.toTimeString().substring(0, 5);
+    document.querySelector('.form-group:last-child').prepend(timeInput);
+
+    // Показ/скрытие RPE
+    workoutSelect.addEventListener('change', () => {
+        rpeContainer.style.display = workoutSelect.value !== 'none' ? 'block' : 'none';
+    });
 
     // Загрузка данных за сегодня
-    loadTodayData();
+    loadTodayData(dateStr);
 
     // Обработка отправки формы
-    dailyForm.addEventListener('submit', handleDailySubmit);
-
-    // Добавление взвешиваний
-    document.getElementById('add-weight-entry')?.addEventListener('click', addWeightEntry);
+    dailyForm.addEventListener('submit', (e) => handleDailySubmit(e, dateStr));
 }
 
-function loadTodayData() {
+function loadTodayData(date) {
     const healthData = getHealthData();
-    const today = new Date().toISOString().split('T')[0];
 
-    if (healthData[today]?.length > 0) {
-        const lastEntry = healthData[today][healthData[today].length - 1];
+    if (healthData[date]?.length > 0) {
+        const lastEntry = healthData[date][healthData[date].length - 1];
         populateForm(lastEntry);
     }
 }
 
 function populateForm(data) {
-    // ... (код заполнения формы)
+    if (data.pulse) document.getElementById('pulse').value = data.pulse;
+    if (data.sleepDuration) {
+        const [hours, minutes] = data.sleepDuration.split(':');
+        document.getElementById('sleep-hours').value = hours;
+        document.getElementById('sleep-minutes').value = minutes;
+    }
+    if (data.energyLevel) {
+        document.querySelector(`input[name="energy"][value="${data.energyLevel}"]`).checked = true;
+    }
+    if (data.weight) document.getElementById('weight').value = data.weight;
+    if (data.weightCondition) document.getElementById('weight-condition').value = data.weightCondition;
+    if (data.steps) document.getElementById('steps').value = data.steps;
+    if (data.calories) document.getElementById('calories').value = data.calories;
+    if (data.alcohol) document.getElementById('alcohol').value = data.alcohol;
+    if (data.workout) document.getElementById('workout').value = data.workout;
+    if (data.rpe) document.getElementById('rpe').value = data.rpe;
+    if (data.mood) document.getElementById('mood').value = data.mood;
+    if (data.notes) document.getElementById('notes').value = data.notes;
+    if (data.time) document.getElementById('entry-time').value = data.time;
 }
 
-function handleDailySubmit(e) {
+function handleDailySubmit(e, date) {
     e.preventDefault();
 
     const healthData = getHealthData();
     const weightConditions = getWeightConditions();
-    const today = new Date().toISOString().split('T')[0];
+    const time = document.getElementById('entry-time').value;
 
     // Сбор данных из формы
     const entry = {
         id: Date.now(),
-        time: new Date().toTimeString().substring(0, 5),
-        // ... (сбор данных из полей формы)
+        time: time,
+        pulse: document.getElementById('pulse').value || null,
+        sleepDuration: `${document.getElementById('sleep-hours').value || 0}:${document.getElementById('sleep-minutes').value || 0}`,
+        energyLevel: document.querySelector('input[name="energy"]:checked')?.value || null,
+        weight: document.getElementById('weight').value || null,
+        weightCondition: document.getElementById('weight-condition').value || null,
+        steps: document.getElementById('steps').value || null,
+        calories: document.getElementById('calories').value || null,
+        alcohol: document.getElementById('alcohol').value || null,
+        workout: document.getElementById('workout').value || null,
+        rpe: document.getElementById('rpe').value || null,
+        mood: document.getElementById('mood').value || null,
+        notes: document.getElementById('notes').value || null
     };
-
-    // Добавляем RPE только если была тренировка
-    if (workoutSelect.value !== 'none') {
-        const rpe = document.getElementById('rpe').value;
-        entry.rpe = rpe ? parseInt(rpe) : null;
-    }
 
     // Сохранение условия взвешивания
     if (entry.weightCondition && !weightConditions.includes(entry.weightCondition)) {
@@ -80,25 +99,23 @@ function handleDailySubmit(e) {
         saveWeightConditions(weightConditions);
     }
 
-    // Добавление записи
-    if (!healthData[today]) healthData[today] = [];
-    healthData[today].push(entry);
+    // Обновление существующей записи или добавление новой
+    if (!healthData[date]) healthData[date] = [];
+
+    // Проверяем, есть ли запись с таким же временем
+    const existingIndex = healthData[date].findIndex(item => item.time === time);
+
+    if (existingIndex !== -1) {
+        // Обновляем существующую запись
+        healthData[date][existingIndex] = entry;
+    } else {
+        // Добавляем новую запись
+        healthData[date].push(entry);
+    }
+
     saveHealthData(healthData);
 
-    // Оповещение и сброс формы
+    // Оповещение и обновление истории
     alert('Данные сохранены!');
-    dailyForm.reset();
-    document.getElementById('entry-date').value = today;
-}
-
-function addWeightEntry() {
-    const container = document.querySelector('.weight-entries');
-    const entry = document.createElement('div');
-    entry.className = 'weight-entry';
-    entry.innerHTML = `
-    <input type="number" class="weight-value" placeholder="Вес, кг" step="0.1" min="30" max="200">
-    <input type="text" class="weight-condition" list="condition-list" placeholder="Условия">
-    <button type="button" class="btn-remove-weight"><i class="fas fa-times"></i></button>
-  `;
-    container.appendChild(entry);
+    loadHistoryData(); // Обновляем историю
 }

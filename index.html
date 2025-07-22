@@ -8,17 +8,17 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script type="module" src="js/utils.js" defer></script>
+    <script type="module" src="js/analytics.js" defer></script>
+    <script type="module" src="js/history.js" defer></script>
+    <script type="module" src="js/settings.js" defer></script>
+    <script type="module" src="js/main.js" defer></script>
 </head>
 <body>
 <div class="container">
     <header>
         <h1><i class="fas fa-heartbeat"></i> Дневник здоровья</h1>
         <div class="date-display" id="current-date"></div>
-        <form id="daily-form">
-            <!-- Другие элементы формы -->
-            <input type="date" id="entry-date">
-            <!-- Другие элементы формы -->
-        </form>
     </header>
 
     <div class="tabs">
@@ -186,8 +186,35 @@
         </form>
     </div>
 
-    <!-- Остальные вкладки остаются без изменений -->
+    <!-- Вкладка "Аналитика" -->
+    <div class="tab-content" id="analytics-tab">
+        <h2>📊 Аналитика</h2>
+        <canvas id="sleep-chart"></canvas>
+        <canvas id="energy-chart"></canvas>
+        <canvas id="weight-chart"></canvas>
+    </div>
 
+    <!-- Вкладка "История" -->
+    <div class="tab-content" id="history-tab">
+        <h2>🗄️ История</h2>
+        <div id="history-list"></div>
+    </div>
+
+    <!-- Вкладка "Настройки" -->
+    <div class="tab-content" id="settings-tab">
+        <h2>⚙️ Настройки</h2>
+        <form id="settings-form">
+            <div class="form-group">
+                <label>Включить напоминания:</label>
+                <input type="checkbox" id="reminder-toggle">
+            </div>
+            <div class="form-group">
+                <label>Время напоминания:</label>
+                <input type="time" id="reminder-time">
+            </div>
+            <button type="submit">Сохранить</button>
+        </form>
+    </div>
 </div>
 
 <script type="module" src="js/main.js"></script>

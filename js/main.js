@@ -11,26 +11,68 @@ function formatDate(date, options) {
     return date.toLocaleDateString('ru-RU', options);
 }
 
+
 document.addEventListener('DOMContentLoaded', () => {
-    // Инициализация вкладок должна быть первой!
+    // Сначала инициализация вкладок
     initTabs();
 
-    // Затем инициализация всех модулей
-    initDailyTracker();
-    initWorkoutTracker();
-    initHistory();
-    initAnalytics();
-    initSettings();
-    initExport();
+    // Затем инициализация всех модулей с проверкой
+    try {
+        initDailyTracker();
+    } catch (e) {
+        console.error('Ошибка инициализации ежедневного трекера:', e);
+    }
+
+    try {
+        initWorkoutTracker();
+    } catch (e) {
+        console.error('Ошибка инициализации трекера тренировок:', e);
+    }
+
+    try {
+        initHistory();
+    } catch (e) {
+        console.error('Ошибка инициализации истории:', e);
+    }
+
+    try {
+        initAnalytics();
+    } catch (e) {
+        console.error('Ошибка инициализации аналитики:', e);
+    }
+
+    try {
+        initSettings();
+    } catch (e) {
+        console.error('Ошибка инициализации настроек:', e);
+    }
+
+    try {
+        initExport();
+    } catch (e) {
+        console.error('Ошибка инициализации экспорта:', e);
+    }
 
     // Установка текущей даты
-    const today = new Date();
-    document.getElementById('current-date').textContent = formatDate(today, {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    });
+    try {
+        const today = new Date();
+        const currentDateElement = document.getElementById('current-date');
+        if (currentDateElement) {
+            currentDateElement.textContent = formatDate(today, {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        } else {
+            console.warn('Элемент #current-date не найден');
+        }
+    } catch (e) {
+        console.error('Ошибка форматирования даты:', e);
+    }
 
-    console.log('Все модули инициализированы');
+    setInterval(() => {
+        const now = new Date();
+        document.getElementById('entry-time').value = now.toTimeString().substring(0, 5);
+    }, 60000);
 });
