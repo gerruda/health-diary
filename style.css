@@ -74,12 +74,6 @@ header h1 {
     color: var(--dark);
 }
 
-.tab.active {
-    background: white;
-    border-bottom: 3px solid var(--primary);
-    color: var(--primary);
-}
-
 .tab:hover:not(.active) {
     background: #d6dbdf;
 }
@@ -456,11 +450,6 @@ button {
     white-space: nowrap;
 }
 
-.tab.active {
-    background: white;
-    border-bottom: 3px solid var(--primary);
-    color: var(--primary);
-}
 
 .tab:hover:not(.active) {
     background: #d6dbdf;
@@ -511,4 +500,40 @@ button {
     margin-top: 10px;
     padding-left: 10px;
     border-left: 2px dashed #ddd;
+}
+
+.entry-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.edit-btn {
+    background: #f39c12;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.tab {
+    cursor: pointer;
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    background: #f5f5f5;
+}
+
+.tab.active {
+    background: #3498db;
+    color: white;
+    border-color: #3498db;
 }

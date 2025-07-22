@@ -1,3 +1,5 @@
+import { getHealthData } from './storage.js'; // Добавить эту строку
+
 export function initAnalytics() {
     // Проверяем существование элементов перед работой с ними
     const sleepChartEl = document.getElementById('sleep-chart');
@@ -9,38 +11,11 @@ export function initAnalytics() {
         return;
     }
 
-    // Инициализация графиков (заглушки)
+    // Инициализация графиков
     initWeightChart();
-    initStepsChart();
-    initCaloriesChart();
-    initMaxWeightChart();
-}
-
-function initChart(canvas, label, data, bgColor) {
-    const ctx = canvas.getContext('2d');
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
-            datasets: [{
-                label: label,
-                data: data,
-                borderColor: '#3498db',
-                backgroundColor: bgColor,
-                borderWidth: 2,
-                tension: 0.3,
-                fill: true
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: {
-                    beginAtZero: false
-                }
-            }
-        }
-    });
+    // initStepsChart();
+    // initCaloriesChart();
+    // initMaxWeightChart();
 }
 
 function initWeightChart() {

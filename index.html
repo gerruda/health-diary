@@ -8,11 +8,15 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script type="module" src="js/utils.js" defer></script>
-    <script type="module" src="js/analytics.js" defer></script>
-    <script type="module" src="js/history.js" defer></script>
-    <script type="module" src="js/settings.js" defer></script>
-    <script type="module" src="js/main.js" defer></script>
+    <script type="module" src="js/utils.js"></script>
+    <script type="module" src="js/storage.js"></script>
+    <script type="module" src="js/daily-tracker.js"></script>
+    <script type="module" src="js/workout.js"></script>
+    <script type="module" src="js/history.js"></script>
+    <script type="module" src="js/analytics.js"></script>
+    <script type="module" src="js/settings.js"></script>
+    <script type="module" src="js/export.js"></script>
+    <script type="module" src="js/main.js"></script>
 </head>
 <body>
 <div class="container">
@@ -22,7 +26,7 @@
     </header>
 
     <div class="tabs">
-        <button class="tab active" data-tab="daily">Ежедневный ввод</button>
+        <button class="tab active" data-tab="daily-tracker">Ежедневный ввод</button>
         <button class="tab" data-tab="workout">Тренировка</button>
         <button class="tab" data-tab="history">История</button>
         <button class="tab" data-tab="analytics">Аналитика</button>
@@ -30,8 +34,10 @@
     </div>
 
     <!-- Вкладка ежедневного ввода -->
-    <div class="tab-content active" id="daily-tab">
+    <div class="tab-content active" id="daily-tracker">
         <form id="daily-form">
+            <input type="date" id="entry-date" hidden>
+
             <div class="form-grid">
 
                 <div class="form-group">
@@ -140,6 +146,8 @@
     <!-- Вкладка тренировки -->
     <div class="tab-content" id="workout-tab">
         <form id="workout-form">
+            <input type="hidden" id="exercise-id">
+
             <div class="form-group">
                 <label for="exercise-name"><i class="fas fa-dumbbell"></i> Упражнение:</label>
                 <input type="text" id="exercise-name" list="exercise-list" placeholder="Начните вводить название">

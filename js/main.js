@@ -71,8 +71,12 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Ошибка форматирования даты:', e);
     }
 
-    setInterval(() => {
-        const now = new Date();
-        document.getElementById('entry-time').value = now.toTimeString().substring(0, 5);
-    }, 60000);
+    // Проверяем существование элемента перед установкой интервала
+    const timeInput = document.getElementById('entry-time');
+    if (timeInput) {
+        setInterval(() => {
+            const now = new Date();
+            timeInput.value = now.toTimeString().substring(0, 5);
+        }, 60000);
+    }
 });

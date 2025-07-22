@@ -1,5 +1,7 @@
 import { getHealthData, getWorkoutHistory } from './storage.js';
 import { formatDate, activateTab } from './utils.js';
+import { populateForm } from './daily-tracker.js';
+import { populateWorkoutForm } from './workout.js';
 
 export function initHistory() {
     loadHistoryData();
@@ -8,25 +10,23 @@ export function initHistory() {
     document.getElementById('history-date')?.addEventListener('change', loadHistoryData);
 }
 
+// history.js
 export function loadHistoryData() {
     const healthData = getHealthData();
     const workoutHistory = getWorkoutHistory();
     const historyList = document.getElementById('history-list');
-    const dateFilter = document.getElementById('history-date')?.value;
 
     if (!historyList) return;
 
     historyList.innerHTML = '';
 
-    // Получаем и фильтруем даты
-    let allDates = [...Object.keys(healthData), ...Object.keys(workoutHistory)];
-    if (dateFilter === 'week') {
-        const today = new Date();
-        const startOfWeek = new Date(today);
-        startOfWeek.setDate(today.getDate() - today.getDay());
-        allDates = allDates.filter(date => new Date(date) >= startOfWeek);
-    }
+    // Объединяем даты из обоих источников
+    const allDates = [
+        ...Object.keys(healthData),
+        ...Object.keys(workoutHistory)
+    ];
 
+    // Удаляем дубликаты и сортируем
     const uniqueDates = [...new Set(allDates)].sort((a, b) =>
         new Date(b) - new Date(a)
     );
@@ -47,46 +47,46 @@ export function loadHistoryData() {
         historyList.appendChild(dateHeader);
 
         // Записи о здоровье
-        if (healthData[date]) {
+        if (healthData[date] && healthData[date].length > 0) {
             healthData[date].forEach(entry => {
                 const entryEl = document.createElement('div');
                 entryEl.className = 'history-entry';
                 entryEl.innerHTML = `
-                    <div class="entry-header">
-                        <span class="entry-time">${entry.time}</span>
-                        <div class="entry-actions">
-                            <button class="edit-btn" data-type="health" data-date="${date}" data-time="${entry.time}">✏️</button>
-                        </div>
-                    </div>
-                    ${entry.pulse ? `<p>Пульс: ${entry.pulse} уд/мин</p>` : ''}
-                    ${entry.sleepDuration ? `<p>Сон: ${entry.sleepDuration}</p>` : ''}
-                    ${entry.weight ? `<p>Вес: ${entry.weight} кг</p>` : ''}
-                    ${entry.steps ? `<p>Шаги: ${entry.steps}</p>` : ''}
-                    ${entry.calories ? `<p>Калории: ${entry.calories} ккал</p>` : ''}
-                    ${entry.notes ? `<p>Заметки: ${entry.notes}</p>` : ''}
-                `;
+          <div class="entry-header">
+            <span class="entry-time">${entry.time}</span>
+            <div class="entry-actions">
+              <button class="edit-btn" data-type="health" data-date="${date}" data-time="${entry.time}">✏️</button>
+            </div>
+          </div>
+          ${entry.pulse ? `<p>Пульс: ${entry.pulse} уд/мин</p>` : ''}
+          ${entry.sleepDuration ? `<p>Сон: ${entry.sleepDuration}</p>` : ''}
+          ${entry.weight ? `<p>Вес: ${entry.weight} кг</p>` : ''}
+          ${entry.steps ? `<p>Шаги: ${entry.steps}</p>` : ''}
+          ${entry.calories ? `<p>Калории: ${entry.calories} ккал</p>` : ''}
+          ${entry.notes ? `<p>Заметки: ${entry.notes}</p>` : ''}
+        `;
                 historyList.appendChild(entryEl);
             });
         }
 
         // Тренировки
-        if (workoutHistory[date]) {
+        if (workoutHistory[date] && workoutHistory[date].length > 0) {
             workoutHistory[date].forEach(exercise => {
                 const exerciseEl = document.createElement('div');
                 exerciseEl.className = 'history-exercise';
                 exerciseEl.innerHTML = `
-                    <div class="entry-header">
-                        <span>${exercise.name}</span>
-                        <div class="entry-actions">
-                            <button class="edit-btn" data-type="workout" data-date="${date}" data-id="${exercise.id}">✏️</button>
-                        </div>
-                    </div>
-                    <div class="exercise-sets">
-                        ${exercise.sets.map(set =>
+          <div class="entry-header">
+            <span>${exercise.name}</span>
+            <div class="entry-actions">
+              <button class="edit-btn" data-type="workout" data-date="${date}" data-id="${exercise.id}">✏️</button>
+            </div>
+          </div>
+          <div class="exercise-sets">
+            ${exercise.sets.map(set =>
                     `<p>${set.weight} кг × ${set.reps} повторений</p>`
                 ).join('')}
-                    </div>
-                `;
+          </div>
+        `;
                 historyList.appendChild(exerciseEl);
             });
         }

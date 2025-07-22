@@ -4,7 +4,8 @@ import {
     getWeightConditions,
     saveWeightConditions,
 } from './storage.js';
-import { loadHistoryData } from './history.js'; // Импортируем функцию обновления истории
+import { loadHistoryData } from './history.js';
+import {activateTab} from "./utils"; // Импортируем функцию обновления истории
 
 export function initDailyTracker() {
     const workoutSelect = document.getElementById('workout');
@@ -13,43 +14,41 @@ export function initDailyTracker() {
 
     if (!dailyForm) return;
 
-    // Установка текущей даты и времени
+    // Установка текущей даты
     const today = new Date();
     const dateStr = today.toISOString().split('T')[0];
-    document.getElementById('entry-date').value = dateStr;
+
+    const dateInput = document.getElementById('entry-date');
+    if (dateInput) {
+        dateInput.value = dateStr;
+    }
 
     // Инициализация поля времени
-    const timeInput = document.createElement('input');
-    timeInput.type = 'time';
-    timeInput.id = 'entry-time';
-    timeInput.value = today.toTimeString().substring(0, 5);
-    document.querySelector('.form-group:last-child').prepend(timeInput);
+    const timeInput = document.getElementById('entry-time');
+    if (!timeInput) {
+        const newTimeInput = document.createElement('input');
+        newTimeInput.type = 'time';
+        newTimeInput.id = 'entry-time';
+        newTimeInput.value = today.toTimeString().substring(0, 5);
+
+        const formGroup = document.querySelector('.form-group:last-child');
+        if (formGroup) {
+            formGroup.prepend(newTimeInput);
+        }
+    }
 
     // Показ/скрытие RPE
-    workoutSelect.addEventListener('change', () => {
-        rpeContainer.style.display = workoutSelect.value !== 'none' ? 'block' : 'none';
-    });
+    if (workoutSelect && rpeContainer) {
+        workoutSelect.addEventListener('change', () => {
+            rpeContainer.style.display = workoutSelect.value !== 'none' ? 'block' : 'none';
+        });
+    }
 
     // Загрузка данных за сегодня
     loadTodayData(dateStr);
 
     // Обработка отправки формы
     dailyForm.addEventListener('submit', (e) => handleDailySubmit(e, dateStr));
-
-    // Добавляем обработчик для кнопки редактирования
-    document.getElementById('edit-entry-btn')?.addEventListener('click', () => {
-        const date = document.getElementById('entry-date').value;
-        const time = document.getElementById('entry-time').value;
-        const healthData = getHealthData();
-
-        if (healthData[date]) {
-            const entryIndex = healthData[date].findIndex(item => item.time === time);
-            if (entryIndex !== -1) {
-                // Устанавливаем флаг редактирования
-                document.getElementById('daily-form').dataset.editing = `${date}|${time}`;
-            }
-        }
-    });
 }
 
 function loadTodayData(date) {
@@ -73,6 +72,7 @@ function loadTodayData(date) {
 }
 
 function populateForm(data) {
+    if (data.id) document.getElementById('entry-id').value = data.id;
     if (data.pulse) document.getElementById('pulse').value = data.pulse;
     if (data.sleepDuration) {
         const [hours, minutes] = data.sleepDuration.split(':');

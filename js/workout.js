@@ -6,6 +6,18 @@ import {
 } from './storage.js';
 import {activateTab, generateId} from './utils.js';
 
+function createSetElement(weight, reps, index) {
+    const setElement = document.createElement('div');
+    setElement.className = 'weight-entry';
+    setElement.innerHTML = `
+        <label>Подход ${index + 1}</label>
+        <input type="number" placeholder="Вес" value="${weight || ''}">
+        <input type="number" placeholder="Повторения" value="${reps || ''}">
+        <button class="btn-remove-weight">×</button>
+    `;
+    return setElement;
+}
+
 export function initWorkoutTracker() {
     const workoutForm = document.getElementById('workout-form');
     if (!workoutForm) return;
@@ -14,15 +26,14 @@ export function initWorkoutTracker() {
     initExercisesList();
 
     // Обработчики событий
-    document.getElementById('add-set')?.addEventListener('click', addSetRow);
-    workoutForm.addEventListener('submit', saveExercise);
-
     document.getElementById('edit-workout-btn')?.addEventListener('click', () => {
         const exerciseName = document.getElementById('exercise-name').value;
         if (exerciseName) {
             document.getElementById('workout-form').dataset.editing = exerciseName;
         }
     });
+
+    document.getElementById('workout-form').addEventListener('submit', saveWorkout);
 }
 
 // Функция редактирования тренировки
@@ -101,12 +112,6 @@ function saveWorkout(e) {
         sets: setsData
     };
 
-    // Добавление в список упражнений
-    if (!exercisesList.includes(exerciseName)) {
-        exercisesList.push(exerciseName);
-        saveExercisesList(exercisesList);
-        initExercisesList();
-    }
 
     // Проверяем, редактируем ли существующую тренировку
     const editingFlag = e.target.dataset.editing;
@@ -135,7 +140,6 @@ function saveWorkout(e) {
     saveWorkoutHistory(workoutHistory);
 
     // Очистка формы
-    workoutForm.reset();
     document.getElementById('sets-body').innerHTML = '';
     addSetRow();
 }
@@ -182,4 +186,16 @@ function updateExercisesList(date) {
             updateExercisesList(date);
         });
     });
+}
+
+export function editWorkoutEntry(date, id) {
+    activateTab('workout');
+
+    const workoutHistory = getWorkoutHistory();
+    const exercise = workoutHistory[date].find(item => item.id == id);
+
+    if (exercise) {
+        populateWorkoutForm(exercise);
+        document.getElementById('workout-form').dataset.editing = `${date}|${id}`;
+    }
 }
