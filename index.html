@@ -6,7 +6,7 @@
     <title>Дневник здоровья</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.2.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script type="module" src="js/utils.js"></script>
     <script type="module" src="js/storage.js"></script>
@@ -17,6 +17,7 @@
     <script type="module" src="js/settings.js"></script>
     <script type="module" src="js/export.js"></script>
     <script type="module" src="js/main.js"></script>
+    <script type="module" src="js/theme.js"></script>
 </head>
 <body>
 <div class="container">
@@ -25,7 +26,7 @@
             <i class="fas fa-moon"></i>
         </button>
         <h1><i class="fas fa-heartbeat"></i> Дневник здоровья</h1>
-        <div class="date-display" id="current-date"></div>
+        <div type="date" class="date-display" id="current-date"></div>
     </header>
 
     <div class="tabs">
@@ -197,9 +198,15 @@
     <!-- Вкладка "Аналитика" -->
     <div class="tab-content" id="analytics">
         <h2>📊 Аналитика</h2>
-        <canvas id="sleep-chart"></canvas>
-        <canvas id="energy-chart"></canvas>
-        <canvas id="weight-chart"></canvas>
+        <div class="chart-container">
+            <canvas id="weight-chart"></canvas>
+        </div>
+        <div class="chart-container">
+            <canvas id="sleep-chart"></canvas>
+        </div>
+        <div class="chart-container">
+            <canvas id="energy-chart"></canvas>
+        </div>
     </div>
 
     <!-- Вкладка "История" -->

@@ -1,18 +1,58 @@
-/* Основные стили */
+/* Основные стили с CSS-переменными */
 :root {
+    /* Общие цвета */
     --primary: #3498db;
     --secondary: #2ecc71;
     --danger: #e74c3c;
     --warning: #f39c12;
-    --dark: #2c3e50;
-    --light: #ecf0f1;
     --gray: #95a5a6;
+
+    /* Светлая тема */
+    --bg-primary: #f5f7fa;
+    --text-primary: #333;
+    --card-bg: white;
+    --header-bg: linear-gradient(135deg, #3498db, #1a5f9e);
+    --border-color: #ddd;
+    --input-bg: white;
+    --tab-bg: #ecf0f1;
+    --history-entry-bg: #f8f9fa;
+    --button-hover: #f0f0f0;
+
+    /* Цвета настроения */
+    --mood-1: #2196F3;
+    --mood-2: #4CAF50;
+    --mood-3: #FFC107;
+    --mood-4: #F44336;
+}
+
+[data-theme="dark"] {
+    /* Темная тема */
+    --primary: #1e90ff;
+    --secondary: #3cb371;
+    --danger: #ff6b6b;
+    --warning: #ffd166;
+    --bg-primary: #121212;
+    --text-primary: #f0f0f0;
+    --card-bg: #1e1e1e;
+    --header-bg: linear-gradient(135deg, #1a2b45, #0f1c2e);
+    --border-color: #444;
+    --input-bg: #2d2d2d;
+    --tab-bg: #2d2d2d;
+    --history-entry-bg: #2d2d2d;
+    --button-hover: #3d3d3d;
+
+    /* Цвета настроения для темной темы */
+    --mood-1: #0d47a1;
+    --mood-2: #1b5e20;
+    --mood-3: #f57f17;
+    --mood-4: #b71c1c;
 }
 
 * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 body {
@@ -20,9 +60,8 @@ body {
     line-height: 1.6;
     padding: 20px;
     min-height: 100vh;
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    transition: background-color 0.5s ease, color 0.5s ease;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
 }
 
 .container {
@@ -30,13 +69,13 @@ body {
     margin: 0 auto;
     border-radius: 15px;
     overflow: hidden;
-    transition: background-color 0.5s ease, box-shadow 0.5s ease;
     background: var(--card-bg);
     box-shadow: 0 5px 25px rgba(0,0,0,0.15);
 }
 
+/* Header Styles */
 header {
-    background: linear-gradient(135deg, var(--primary), #1a5f9e);
+    background: var(--header-bg);
     color: white;
     padding: 25px 30px;
     text-align: center;
@@ -52,19 +91,39 @@ header h1 {
     gap: 15px;
 }
 
-.date-display {
-    font-size: 1.1rem;
-    opacity: 0.9;
+.theme-toggle {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: white;
+    font-size: 1.2rem;
 }
 
+.theme-toggle:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
+/* Tabs Navigation */
 .tabs {
     display: flex;
-    background: var(--light);
-    border-bottom: 1px solid #ddd;
+    background: var(--tab-bg);
+    border-bottom: 1px solid var(--border-color);
+    flex-wrap: wrap;
 }
 
 .tab {
     flex: 1;
+    min-width: 120px;
     padding: 15px;
     text-align: center;
     background: none;
@@ -72,12 +131,13 @@ header h1 {
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s;
-    color: var(--dark);
+    color: var(--text-primary);
+    white-space: nowrap;
 }
 
-.tab:hover:not(.active) {
-    background: #d6dbdf;
+.tab.active {
+    background: var(--card-bg);
+    border-bottom: 3px solid var(--primary);
 }
 
 .tab-content {
@@ -89,19 +149,15 @@ header h1 {
     display: block;
 }
 
+/* Form Elements */
 .form-group {
     margin-bottom: 15px;
-}
-
-.form-group.full-width {
-    grid-column: 1 / -1;
 }
 
 label {
     display: block;
     margin-bottom: 8px;
     font-weight: 600;
-    color: var(--dark);
     display: flex;
     align-items: center;
     gap: 8px;
@@ -110,10 +166,11 @@ label {
 input, select, textarea {
     width: 100%;
     padding: 12px 15px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     font-size: 16px;
-    transition: all 0.3s;
+    background-color: var(--input-bg);
+    color: var(--text-primary);
 }
 
 input:focus, select:focus, textarea:focus {
@@ -122,24 +179,16 @@ input:focus, select:focus, textarea:focus {
     box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
 }
 
-.time-input {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.time-input input {
-    width: 70px;
-    text-align: center;
-}
+/* Mood Indicators */
+.mood-1 { background-color: var(--mood-1); }
+.mood-2 { background-color: var(--mood-2); }
+.mood-3 { background-color: var(--mood-3); }
+.mood-4 { background-color: var(--mood-4); }
 
 .rating {
     display: flex;
     gap: 10px;
-}
-
-.rating input[type="radio"] {
-    display: none;
+    margin-bottom: 15px;
 }
 
 .rating label {
@@ -148,105 +197,78 @@ input:focus, select:focus, textarea:focus {
     height: 35px;
     line-height: 35px;
     text-align: center;
-    background: var(--light);
-    color: var(--text-color);
+    background: var(--input-bg);
+    color: var(--text-primary);
     border-radius: 50%;
     cursor: pointer;
     transition: all 0.3s;
+    border: 1px solid var(--border-color);
 }
 
 .rating input[type="radio"]:checked + label {
     background: var(--secondary);
     color: white;
+    transform: scale(1.1);
+    border-color: var(--secondary);
 }
 
-.combo-input {
-    position: relative;
+.rating label:hover {
+    background: var(--button-hover);
 }
 
-datalist {
-    position: absolute;
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    width: 100%;
-    z-index: 100;
+.rating input[type="radio"] {
+    display: none;
 }
 
-datalist option {
-    padding: 8px 15px;
-    cursor: pointer;
-}
-
-datalist option:hover {
-    background: #f0f0f0;
-}
-
-textarea {
-    min-height: 100px;
-    resize: vertical;
-}
-
-.form-buttons {
-    display: flex;
-    gap: 15px;
-    margin-top: 20px;
-}
-
+/* Buttons */
 button {
     cursor: pointer;
     font-size: 16px;
     font-weight: 600;
     border-radius: 8px;
     border: none;
-    transition: all 0.3s ease;
     padding: 12px 20px;
+    background-color: var(--primary);
+    color: white;
+    transition: all 0.3s ease;
+}
+
+button:hover {
+    background-color: var(--button-hover);
+    color: var(--text-primary);
 }
 
 .btn-save {
     background: var(--secondary);
-    color: white;
-    flex: 1;
-}
-
-.btn-save:hover {
-    background: #27ae60;
-    transform: translateY(-2px);
 }
 
 .btn-add {
-    background-color: var(--light);
-    color: var(--text-color);
+    background-color: var(--primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 15px;
 }
 
-.btn-add:hover {
-    background: #dfe4ea;
+.btn-add::before {
+    content: "+";
+    font-size: 1.2rem;
+    font-weight: bold;
 }
 
 .btn-export {
     background-color: var(--secondary);
-    color: white;
 }
 
-/* История записей */
-.history-controls {
-    display: flex;
-    gap: 15px;
-    margin-bottom: 20px;
-}
-
-.date-picker {
-    flex: 1;
-}
-
-.history-entry {
-    background: #f8f9fa;
-    border-left: 4px solid var(--primary);
-    border-radius: 8px;
-    padding: 20px;
+/* History Entries */
+.history-entry, .history-exercise {
+    background: var(--history-entry-bg);
+    border-left: 3px solid var(--primary);
+    border-radius: 5px;
+    padding: 15px;
     margin-bottom: 15px;
-    position: relative;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
 .entry-header {
@@ -254,12 +276,7 @@ button {
     justify-content: space-between;
     margin-bottom: 10px;
     padding-bottom: 10px;
-    border-bottom: 1px solid #eee;
-}
-
-.entry-time {
-    font-weight: bold;
-    color: var(--primary);
+    border-bottom: 1px solid var(--border-color);
 }
 
 .entry-actions {
@@ -279,49 +296,18 @@ button {
 
 .edit-btn {
     background: var(--warning);
-    color: white;
 }
 
 .delete-btn {
     background: var(--danger);
-    color: white;
 }
 
-.entry-data {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
+/* Calendar Picker in Dark Mode */
+[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.8);
 }
 
-.data-item {
-    display: flex;
-    gap: 8px;
-}
-
-.data-label {
-    font-weight: 600;
-    color: var(--dark);
-}
-
-/* Графики */
-.chart-container {
-    height: 500px;
-    margin-bottom: 25px;
-}
-
-.chart-controls {
-    display: flex;
-    gap: 15px;
-    flex-wrap: wrap;
-}
-
-/* Настройки */
-.reminder-settings {
-    max-width: 500px;
-    margin: 0 auto;
-}
-
-/* Модальное окно */
+/* Modal Window */
 .modal {
     display: none;
     position: fixed;
@@ -336,7 +322,7 @@ button {
 }
 
 .modal-content {
-    background: white;
+    background: var(--card-bg);
     border-radius: 12px;
     width: 90%;
     max-width: 700px;
@@ -355,33 +341,20 @@ button {
     color: var(--gray);
 }
 
-/* Адаптивность */
+/* Responsive Design */
 @media (max-width: 768px) {
-    .form-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .form-buttons {
+    .form-buttons, .history-controls, .chart-controls {
         flex-direction: column;
     }
 
-    .history-controls {
-        flex-direction: column;
-    }
-
-    .chart-controls {
-        flex-direction: column;
-    }
-}
-
-@media (max-width: 480px) {
     .tabs {
-        flex-wrap: wrap;
+        overflow-x: auto;
+        flex-wrap: nowrap;
     }
 
     .tab {
-        flex: 1 0 50%;
-        padding: 12px;
+        min-width: 100px;
+        padding: 12px 10px;
         font-size: 0.9rem;
     }
 
@@ -390,166 +363,17 @@ button {
     }
 }
 
-.weight-entries {
-    margin-bottom: 15px;
-}
-
-.weight-entry {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 10px;
-    align-items: center;
-}
-
-.weight-entry input[type="number"] {
-    width: 120px;
-}
-
-.weight-entry input[type="text"] {
-    flex: 1;
-}
-
-.btn-remove-weight {
-    background: var(--danger);
-    color: white;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-}
-
-/* Исправления для меню */
-.tabs {
-    display: flex;
-    background: var(--light);
-    border-bottom: 1px solid #ddd;
-    flex-wrap: wrap;
-}
-
-.tab {
-    flex: 1;
-    min-width: 120px;
-    padding: 15px;
-    text-align: center;
-    background: none;
-    border: none;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s;
-    color: var(--dark);
-    white-space: nowrap;
-}
-
-
-.tab:hover:not(.active) {
-    background: #d6dbdf;
-}
-
-.tab-content {
-    display: none;
-    padding: 25px;
-}
-
-.tab-content.active {
-    display: block;
-}
-
-/* Адаптивность для меню */
-@media (max-width: 768px) {
-    .tabs {
-        overflow-x: auto;
-        flex-wrap: nowrap;
-        -webkit-overflow-scrolling: touch;
-    }
-
+@media (max-width: 480px) {
     .tab {
-        min-width: 100px;
-        padding: 12px 10px;
-        font-size: 0.9rem;
+        flex: 1 0 50%;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
     }
 }
 
-.history-entry, .history-exercise {
-    background: #f8f9fa;
-    border-left: 3px solid #3498db;
-    border-radius: 5px;
-    padding: 15px;
-    margin-bottom: 15px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
-
-.history-exercise {
-    border-left-color: #e74c3c;
-}
-
-.history-entry p, .history-exercise p {
-    margin: 5px 0;
-}
-
-.exercise-sets {
-    margin-top: 10px;
-    padding-left: 10px;
-    border-left: 2px dashed #ddd;
-}
-
-.entry-actions {
-    display: flex;
-    gap: 10px;
-}
-
-.edit-btn {
-    background: #f39c12;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 5px 10px;
-    cursor: pointer;
-    font-size: 14px;
-}
-
-.tab-content {
-    display: none;
-    padding: 20px;
-    background: white;
-    border-radius: 0 0 10px 10px;
-}
-
-.tab-content.active {
-    display: block;
-}
-
-.tabs {
-    display: flex;
-    background: #f5f7fa;
-    border-bottom: 1px solid #ddd;
-}
-
-.tab {
-    padding: 12px 20px;
-    cursor: pointer;
-    background: #eaeaea;
-    border: none;
-    border-right: 1px solid #ddd;
-    font-weight: 600;
-}
-
-.tab.active {
-    background: white;
-    border-bottom: 3px solid #3498db;
-    color: #3498db;
-}
-
-.time-input-container {
-    display: none;
-    align-items: center;
-    gap: 10px;
-}
-
-/* Обеспечим видимость других элементов */
+/* Utility Classes */
 .form-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -557,247 +381,29 @@ button {
     margin-top: 20px;
 }
 
-.entry-actions {
+.time-input {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.data-item {
     display: flex;
     gap: 8px;
 }
 
-.edit-btn, .delete-btn {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    border: none;
+/* Image Filter for Dark Theme */
+[data-theme="dark"] img:not(.no-filter),
+[data-theme="dark"] svg:not(.no-filter) {
+    filter: invert(0.85) brightness(0.9);
 }
 
-.edit-btn {
-    background: #f39c12;
-    color: white;
-}
-
-.delete-btn {
-    background: #e74c3c;
-    color: white;
-}
-
-#export-controls {
-    background: #f8f9fa;
-    padding: 20px;
-    border-radius: 10px;
-    margin-bottom: 25px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-#export-controls .form-group {
-    margin-bottom: 15px;
-}
-
-#export-controls label {
-    display: inline-block;
-    width: 120px;
-    font-weight: 600;
-}
-
-#export-controls select,
-#export-controls input {
-    padding: 8px 12px;
-    border-radius: 6px;
-    border: 1px solid #ddd;
-    width: 200px;
-}
-
-.btn-export {
-    background: #27ae60;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 600;
-    transition: background 0.3s;
-}
-
-.btn-export:hover {
-    background: #219653;
-}
-
-#custom-dates {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
-}
-
-#custom-dates > div {
-    display: flex;
-    flex-direction: column;
-}
-
-#export-controls .form-group {
-    margin-bottom: 15px;
-}
-
-#export-controls label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: 600;
-}
-
-#export-controls select,
-#export-controls input {
-    width: 100%;
-    padding: 8px;
-    border-radius: 6px;
-    border: 1px solid #ddd;
-}
-
-#weighings-container {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-bottom: 10px;
-}
-
-.weight-entry {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-}
-
-.weight-entry input {
-    flex: 1;
-}
-
-.btn-remove-weight {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: #e74c3c;
-    color: white;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* Стили для истории */
-.weighings-list {
-    list-style-type: none;
-    padding-left: 0;
-    margin-top: 5px;
-}
-
-.weighings-list li {
-    padding: 3px 0;
-}
-
-/* Добавьте в конец style.css */
-:root {
-    /* Цвета светлой темы */
-    --primary: #3498db;
-    --secondary: #2ecc71;
-    --danger: #e74c3c;
-    --warning: #f39c12;
-    --dark: #2c3e50;
-    --light: #ecf0f1;
-    --gray: #95a5a6;
-    --bg-color: #f5f7fa;
-    --text-color: #333;
-    --card-bg: white;
-    --header-bg: linear-gradient(135deg, var(--primary), #1a5f9e);
-    --border-color: #ddd;
-    --input-bg: white;
-    --input-text: #333;
-    --tab-bg: var(--light);
-    --history-entry-bg: #f8f9fa;
-}
-
-[data-theme="dark"] {
-    /* Цвета темной темы */
-    --primary: #1e90ff;
-    --secondary: #3cb371;
-    --danger: #ff6b6b;
-    --warning: #ffd166;
-    --dark: #121212;
-    --light: #2d2d2d;
-    --gray: #7b7b7b;
-    --bg-color: #1a1a1a;
-    --text-color: #e0e0e0;
-    --card-bg: #222;
-    --header-bg: linear-gradient(135deg, #1a2b45, #0f1c2e);
-    --border-color: #444;
-    --input-bg: #333;
-    --input-text: #e0e0e0;
-    --tab-bg: #2d2d2d;
-    --history-entry-bg: #2d2d2d;
-}
-
-
-header {
-    background: var(--header-bg);
-}
-
-.tabs {
-    background: var(--tab-bg);
-    border-bottom: 1px solid var(--border-color);
-}
-
-.tab {
-    background: none;
-    color: var(--text-color);
-}
-
-.tab.active {
+.chart-container {
+    position: relative;
+    height: 400px;
+    margin-bottom: 2rem;
     background: var(--card-bg);
-    color: var(--primary);
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
-
-input, select, textarea {
-    background-color: var(--input-bg);
-    color: var(--input-text);
-    border-color: var(--border-color);
-}
-
-.history-entry, .history-exercise {
-    background: var(--history-entry-bg);
-    border-left-color: var(--primary);
-}
-
-.theme-toggle {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    background: rgba(255, 255, 255, 0.2);
-    border: none;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    color: white;
-    font-size: 1.2rem;
-    transition: all 0.3s;
-}
-
-.theme-toggle:hover {
-    background: rgba(255, 255, 255, 0.3);
-    transform: scale(1.1);
-}
-
-.history-controls select,
-.history-controls input {
-    background-color: var(--input-bg);
-    color: var(--input-text);
-    border-color: var(--border-color);
-}
-
-button {
-    background-color: var(--primary);
-    color: white;
-}
-
