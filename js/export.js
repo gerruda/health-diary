@@ -105,6 +105,10 @@ function getDateRange(range) {
         case 'custom':
             startDate = new Date(document.getElementById('start-date').value);
             endDate = new Date(document.getElementById('end-date').value);
+            if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+                alert('Пожалуйста, выберите корректные даты');
+                return null;
+            }
             break;
         case 'all':
         default:
@@ -118,7 +122,10 @@ function getDateRange(range) {
 
 function prepareHealthData(range) {
     const healthData = getHealthData();
-    const { startDate, endDate } = getDateRange(range);
+    const dateRange = getDateRange(range);
+    if (!dateRange) return [];
+
+    const { startDate, endDate } = dateRange;
     const exportData = [];
 
     for (const date in healthData) {
@@ -160,35 +167,67 @@ function prepareHealthData(range) {
 
 function prepareWorkoutData(range) {
     const workoutHistory = getWorkoutHistory();
-    const { startDate, endDate } = getDateRange(range);
+    const dateRange = getDateRange(range);
+    if (!dateRange) return [];
+
+    const { startDate, endDate } = dateRange;
     const exportData = [];
 
     for (const date in workoutHistory) {
         const currentDate = new Date(date);
         if (currentDate >= startDate && currentDate <= endDate) {
             workoutHistory[date].forEach(exercise => {
-                // Форматируем подходы
-                const setsText = exercise.sets.map((set, index) =>
-                    `Подход ${index+1}: ${set.weight} кг × ${set.reps}`
-                ).join('; ');
+                // Рассчитываем показатели для упражнения
+                let setsText = '';
+                let best1RM = 0;
+                let totalVolume = 0;
+                let bestSetIndex = 0;
+                let bestSetValue = 0;
+
+                exercise.sets.forEach((set, index) => {
+                    // Учитываем флаг "на каждую конечность"
+                    const effectiveWeight = set.perLimb ? set.weight * 2 : set.weight;
+
+                    // Рассчитываем 1ПМ для подхода (формула Эпли)
+                    const oneRepMax = effectiveWeight * (1 + set.reps / 30);
+
+                    // Рассчитываем объем подхода
+                    const setVolume = effectiveWeight * set.reps;
+
+                    // Форматируем подход
+                    setsText += `Подход ${index + 1}: ${set.weight} кг × ${set.reps}`;
+                    if (set.perLimb) setsText += ' (на каждую конечность)';
+                    setsText += '; ';
+
+                    // Обновляем лучшие показатели
+                    if (oneRepMax > best1RM) best1RM = oneRepMax;
+                    totalVolume += setVolume;
+
+                    // Находим лучший подход (по весу)
+                    if (effectiveWeight > bestSetValue) {
+                        bestSetValue = effectiveWeight;
+                        bestSetIndex = index;
+                    }
+                });
+
+                // Форматируем лучший подход
+                const bestSet = exercise.sets[bestSetIndex];
+                const bestEffectiveWeight = bestSet.perLimb ? bestSet.weight * 2 : bestSet.weight;
+                const bestSetText = `${bestEffectiveWeight} кг × ${bestSet.reps}`;
 
                 // Создаем запись для каждого упражнения
                 exportData.push({
                     Дата: date,
                     Упражнение: exercise.name,
                     Подходы: setsText,
-                    RPE: exercise.rpe || '',
-                    '1ПМ': exercise.sets.map(set =>
-                        calculateOneRepMax(set.weight, set.reps).toFixed(1)
-                    ).join('; ')
+                    'Лучший подход': bestSetText,
+                    '1ПМ (расч.)': best1RM.toFixed(1),
+                    'Общий объем': totalVolume.toFixed(1),
+                    RPE: exercise.rpe || ''
                 });
             });
         }
     }
 
     return exportData;
-}
-
-function calculateOneRepMax(weight, reps) {
-    return weight * (1 + reps / 30);
 }

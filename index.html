@@ -6,7 +6,7 @@
     <title>Дневник здоровья</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.2.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script type="module" src="js/utils.js"></script>
     <script type="module" src="js/storage.js"></script>
@@ -206,6 +206,16 @@
         </div>
         <div class="chart-container">
             <canvas id="energy-chart"></canvas>
+        </div>
+        <div class="chart-container">
+            <h3>Прогресс в упражнениях (1ПМ)</h3>
+            <div class="exercise-controls">
+                <select id="exercise-filter" class="form-control">
+                    <option value="">Выберите упражнение</option>
+                    <!-- Варианты будут заполнены динамически -->
+                </select>
+            </div>
+            <canvas id="exercise-chart"></canvas>
         </div>
     </div>
 

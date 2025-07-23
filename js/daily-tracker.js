@@ -10,25 +10,26 @@ export function initDailyTracker() {
     const dailyForm = document.getElementById('daily-form');
     if (!dailyForm) return;
 
-    // Установка текущей даты
-    const today = new Date();
-    const dateStr = today.toISOString().split('T')[0];
+    // Создаем скрытое поле для времени, если его нет
+    let timeInput = document.getElementById('entry-time');
+    if (!timeInput) {
+        timeInput = document.createElement('input');
+        timeInput.type = 'hidden';
+        timeInput.id = 'entry-time';
+        dailyForm.appendChild(timeInput);
+    }
 
     const dateInput = document.getElementById('entry-date');
-    if (dateInput) dateInput.value = dateStr;
 
-    // Инициализация времени - только если контейнер существует
-    const timeContainer = document.querySelector('.time-input-container');
-    if (timeContainer) {
-        let timeInput = document.getElementById('entry-time');
-        if (!timeInput) {
-            timeInput = document.createElement('input');
-            timeInput.type = 'time';
-            timeInput.id = 'entry-time';
-            timeContainer.appendChild(timeInput);
-        }
-        timeInput.value = today.toTimeString().substring(0, 5);
-    }
+    // Обработчик изменения даты
+    dateInput.addEventListener('change', () => {
+        const newDate = dateInput.value;
+        loadTodayData(newDate);
+    });
+
+    // Загрузка данных для текущей даты
+    const currentDate = dateInput.value || new Date().toISOString().split('T')[0];
+    loadTodayData(currentDate);
 
     // Инициализация RPE
     initRPEVisibility();
@@ -39,11 +40,11 @@ export function initDailyTracker() {
         addWeightBtn.addEventListener('click', addWeightEntry);
     }
 
-    // Загрузка данных
-    loadTodayData(dateStr);
-
     // Обработка формы
-    dailyForm.addEventListener('submit', (e) => handleDailySubmit(e, dateStr));
+    dailyForm.addEventListener('submit', (e) => {
+        const currentDate = document.getElementById('entry-date').value;
+        handleDailySubmit(e, currentDate);
+    });
 }
 
 function initRPEVisibility() {
@@ -60,32 +61,41 @@ function initRPEVisibility() {
 
 function loadTodayData(date) {
     const healthData = getHealthData();
-    const currentTime = document.getElementById('entry-time').value;
+    const timeInput = document.getElementById('entry-time');
 
     if (healthData[date]?.length > 0) {
-        // Ищем запись с текущим временем
-        const entry = healthData[date].find(item => item.time === currentTime);
-
-        if (entry) {
-            populateForm(entry);
-            // Устанавливаем флаг редактирования
-            document.getElementById('daily-form').dataset.editing = `${date}|${currentTime}`;
-        } else {
-            // Показываем последнюю запись за день
-            const lastEntry = healthData[date][healthData[date].length - 1];
-            populateForm(lastEntry);
+        // Берем последнюю запись за день
+        const lastEntry = healthData[date][healthData[date].length - 1];
+        populateForm(lastEntry);
+        // Устанавливаем флаг редактирования
+        document.getElementById('daily-form').dataset.editing = `${date}|${lastEntry.time}`;
+        // Сохраняем время записи в скрытом поле
+        if (lastEntry.time) {
+            timeInput.value = lastEntry.time;
         }
+    } else {
+        // Устанавливаем текущее время для новой записи
+        const now = new Date();
+        timeInput.value = now.toTimeString().substring(0, 5);
+        // Сбрасываем флаг редактирования
+        delete document.getElementById('daily-form').dataset.editing;
+        // Очищаем форму
+        populateForm({});
     }
 }
 
 export function populateForm(data) {
-    // Добавим проверки перед установкой значений
     const setValue = (id, value) => {
         const element = document.getElementById(id);
         if (element && value !== undefined && value !== null) {
             element.value = value;
         }
     };
+
+    // Устанавливаем время только если оно есть в данных
+    if (data.time) {
+        setValue('entry-time', data.time);
+    }
 
     setValue('pulse', data.pulse);
     setValue('sleep-hours', data.sleepDuration ? data.sleepDuration.split(':')[0] : '');
@@ -99,7 +109,6 @@ export function populateForm(data) {
     setValue('rpe', data.rpe);
     setValue('mood', data.mood);
     setValue('notes', data.notes);
-    setValue('entry-time', data.time);
 
     // Радио кнопки энергии
     if (data.energyLevel) {
@@ -107,7 +116,7 @@ export function populateForm(data) {
         if (energyRadio) energyRadio.checked = true;
     }
 
-    // Вес и условия взвешивания (новая структура)
+    // Вес и условия взвешивания
     const weighingsContainer = document.getElementById('weighings-container');
     weighingsContainer.innerHTML = '';
 
@@ -126,7 +135,8 @@ function handleDailySubmit(e, date) {
 
     const healthData = getHealthData();
     const weightConditions = getWeightConditions();
-    const time = document.getElementById('entry-time').value;
+    const timeInput = document.getElementById('entry-time');
+    const time = timeInput.value;
 
     // Сбор данных о взвешиваниях
     const weighings = [];
@@ -164,16 +174,18 @@ function handleDailySubmit(e, date) {
         notes: document.getElementById('notes').value || null
     };
 
-    // Сохранение условия взвешивания
-    if (entry.weightCondition && !weightConditions.includes(entry.weightCondition)) {
-        weightConditions.push(entry.weightCondition);
-        saveWeightConditions(weightConditions);
-    }
+    // Сохранение условий взвешивания
+    weighings.forEach(w => {
+        if (w.condition && !weightConditions.includes(w.condition)) {
+            weightConditions.push(w.condition);
+        }
+    });
+    saveWeightConditions(weightConditions);
 
-    // Обновление существующей записи или добавление новой
+    // Обновление или добавление записи
     if (!healthData[date]) healthData[date] = [];
 
-    // Проверяем, редактируем ли мы существующую запись
+    // Проверяем флаг редактирования
     const editingFlag = e.target.dataset.editing;
     let existingIndex = -1;
 
@@ -187,10 +199,8 @@ function handleDailySubmit(e, date) {
     }
 
     if (existingIndex !== -1) {
-        // Обновляем существующую запись
         healthData[date][existingIndex] = entry;
     } else {
-        // Добавляем новую запись
         healthData[date].push(entry);
     }
 
@@ -202,7 +212,7 @@ function handleDailySubmit(e, date) {
     // Оповещение и обновление истории
     alert('Данные сохранены!');
     if (typeof loadHistoryData === 'function') {
-        loadHistoryData(); // Обновляем историю
+        loadHistoryData();
     }
 }
 
