@@ -32,7 +32,6 @@ function initWeightChart() {
         }
         return dateStr;
     };
-
     // Создаем метки для оси X
     const labels = [...new Set([
         ...data.weights.map(item => item.x),
@@ -47,23 +46,6 @@ function initWeightChart() {
         return entry ? entry.y : null;
     });
 
-    // Создаем комбинированные точки для событий
-    const eventMarkers = labels.map(label => {
-        const date = label.split('.').reverse().join('-');
-        const hasWorkout = data.workouts.some(item => item.x === date);
-        const hasAlcohol = data.alcohol.some(item => item.x === date);
-
-        if (!hasWorkout && !hasAlcohol) return null;
-
-        const weightEntry = data.weights.find(item => item.x === date);
-        return weightEntry ? {
-            x: label,
-            y: weightEntry.y,
-            workout: hasWorkout,
-            alcohol: hasAlcohol
-        } : null;
-    });
-
     new Chart(ctx.getContext('2d'), {
         type: 'line',
         data: {
@@ -75,32 +57,20 @@ function initWeightChart() {
                     borderColor: '#3498db',
                     backgroundColor: theme === 'dark' ? 'rgba(52, 152, 219, 0.2)' : 'rgba(52, 152, 219, 0.1)',
                     tension: 0.3,
-                    fill: true
-                },
-                {
-                    label: 'События',
-                    data: eventMarkers,
-                    pointStyle: (ctx) => {
-                        const value = ctx.raw;
-                        if (!value) return undefined;
-                        if (value.workout && value.alcohol) return 'star';
-                        if (value.workout) return 'triangle';
-                        if (value.alcohol) return 'rect';
-                        return undefined;
-                    },
-                    pointRadius: (ctx) => {
-                        const value = ctx.raw;
-                        return value ? 10 : 0;
-                    },
+                    fill: true,
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
                     pointBackgroundColor: (ctx) => {
-                        const value = ctx.raw;
-                        if (!value) return undefined;
-                        if (value.workout && value.alcohol) return '#f1c40f';
-                        if (value.workout) return '#2ecc71';
-                        if (value.alcohol) return '#e74c3c';
-                        return undefined;
-                    },
-                    showLine: false
+                        const index = ctx.dataIndex;
+                        const date = labels[index].split('.').reverse().join('-');
+                        const hasWorkout = data.workouts.some(item => item.x === date);
+                        const hasAlcohol = data.alcohol.some(item => item.x === date);
+
+                        if (hasWorkout && hasAlcohol) return '#f1c40f';
+                        if (hasWorkout) return '#2ecc71';
+                        if (hasAlcohol) return '#e74c3c';
+                        return '#3498db';
+                    }
                 }
             ]
         },
@@ -129,18 +99,19 @@ function initWeightChart() {
                 },
                 tooltip: {
                     callbacks: {
-                        afterBody: (tooltipItems) => {
+                        beforeBody: (tooltipItems) => {
                             const index = tooltipItems[0].dataIndex;
-                            const value = eventMarkers[index];
-                            if (!value) return '';
+                            const date = labels[index].split('.').reverse().join('-');
+                            const hasWorkout = data.workouts.some(item => item.x === date);
+                            const hasAlcohol = data.alcohol.some(item => item.x === date);
 
                             const events = [];
-                            if (value.workout) events.push('Тренировка');
-                            if (value.alcohol) events.push('Алкоголь');
+                            if (hasWorkout) events.push('Тренировка');
+                            if (hasAlcohol) events.push('Алкоголь');
 
                             return events.length > 0
-                                ? `События: ${events.join(', ')}`
-                                : '';
+                                ? [`События: ${events.join(', ')}`]
+                                : [];
                         }
                     }
                 }
@@ -182,6 +153,7 @@ function prepareWeightData() {
         let weightCount = 0;
 
         healthData[date].forEach(entry => {
+            console.log(entry, 'entry')
             // Обрабатываем взвешивания
             if (entry.weighings) {
                 entry.weighings.forEach(weighing => {
@@ -199,7 +171,7 @@ function prepareWeightData() {
             }
 
             // Проверяем алкоголь
-            if (entry.alcohol && entry.alcohol.trim() !== '' && parseFloat(entry.alcohol) > 0) {
+            if (entry.alcohol && entry.alcohol.trim() !== '' && entry.alcohol !== 'no') {
                 hasAlcohol = true;
             }
         });

@@ -48,7 +48,7 @@ export function initDailyTracker() {
 }
 
 function initRPEVisibility() {
-    const workoutSelect = document.getElementById('workout');
+    const workoutSelect = document.getElementById('workout-data');
     const rpeContainer = document.getElementById('rpe-container');
 
     if (workoutSelect && rpeContainer) {
@@ -168,7 +168,7 @@ function handleDailySubmit(e, date) {
         steps: document.getElementById('steps').value || null,
         calories: document.getElementById('calories').value || null,
         alcohol: document.getElementById('alcohol').value || null,
-        workout: document.getElementById('workout').value || null,
+        workout: document.getElementById('workout-data').value || null,
         rpe: document.getElementById('rpe').value || null,
         mood: document.getElementById('mood').value || null,
         notes: document.getElementById('notes').value || null
