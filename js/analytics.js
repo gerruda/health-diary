@@ -153,7 +153,6 @@ function prepareWeightData() {
         let weightCount = 0;
 
         healthData[date].forEach(entry => {
-            console.log(entry, 'entry')
             // Обрабатываем взвешивания
             if (entry.weighings) {
                 entry.weighings.forEach(weighing => {
