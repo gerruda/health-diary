@@ -29,6 +29,35 @@ export function initDailyTracker() {
 
     // Устанавливаем текущую дату при загрузке
     currentDate = dateInput.value || new Date().toISOString().split('T')[0];
+    dateInput.value = currentDate; // Убедимся, что в поле ввода актуальная дата
+
+    // Создаем кнопку "Сегодня"
+    const todayButton = document.createElement('button');
+    todayButton.textContent = 'Сегодня';
+    todayButton.type = 'button';
+    todayButton.className = 'btn-today';
+    dateInput.parentNode.insertBefore(todayButton, dateInput.nextSibling);
+
+    // Обработчик для кнопки "Сегодня"
+    todayButton.addEventListener('click', () => {
+        // Сохраняем черновик для текущей даты
+        saveDraft(currentDate);
+
+        // Устанавливаем сегодняшнюю дату
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.value = today;
+
+        // Удаляем черновик для сегодняшней даты, чтобы не мешал
+        const drafts = JSON.parse(localStorage.getItem('dailyFormDrafts') || '{}');
+        delete drafts[today];
+        localStorage.setItem('dailyFormDrafts', JSON.stringify(drafts));
+
+        // Обновляем текущую дату
+        currentDate = today;
+
+        // Загружаем данные для сегодня
+        loadTodayData(today);
+    });
 
     // Обработчик изменения даты
     dateInput.addEventListener('change', () => {
@@ -49,7 +78,6 @@ export function initDailyTracker() {
     // Инициализация контейнера взвешиваний
     const addWeightBtn = document.getElementById('add-weight');
     if (addWeightBtn) {
-        // Исправлено: обернули в функцию, чтобы не передавать событие
         addWeightBtn.addEventListener('click', () => addWeightEntry());
     }
 
@@ -95,7 +123,7 @@ function setupAutoSave() {
     window.addEventListener('beforeunload', (e) => {
         if (isFormChanged) {
             saveDraft(currentDate);
-            // Предупреждение для пользователя (необязательно)
+            // Предупреждение для пользователя
             e.preventDefault();
             e.returnValue = '';
         }
@@ -112,7 +140,7 @@ function setupAutoSave() {
 
 function markFormChanged() {
     isFormChanged = true;
-    // Можно добавить визуальный индикатор изменений
+    // Визуальный индикатор изменений
     document.getElementById('daily-form').classList.add('unsaved-changes');
 }
 
@@ -356,16 +384,16 @@ function handleDailySubmit(e, date) {
     // Сбрасываем флаг редактирования
     delete e.target.dataset.editing;
 
+    // Удаляем черновик после сохранения
+    const drafts = JSON.parse(localStorage.getItem('dailyFormDrafts') || '{}');
+    delete drafts[date];
+    localStorage.setItem('dailyFormDrafts', JSON.stringify(drafts));
+
     // Оповещение и обновление истории
     alert('Данные сохранены!');
     if (typeof loadHistoryData === 'function') {
         loadHistoryData();
     }
-
-    // Удаляем черновик после сохранения
-    const drafts = JSON.parse(localStorage.getItem('dailyFormDrafts') || '{}');
-    delete drafts[date];
-    localStorage.setItem('dailyFormDrafts', JSON.stringify(drafts));
 }
 
 function addWeightEntry(weight = '', condition = '') {
