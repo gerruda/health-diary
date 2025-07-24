@@ -3,14 +3,20 @@ import {
     saveHealthData,
     getWeightConditions,
     saveWeightConditions,
+    getFormDraft,
+    saveFormDraft
 } from './storage.js';
 import { loadHistoryData } from './history.js';
+
+// Глобальная переменная для отслеживания изменений
+let isFormChanged = false;
+let currentDate = '';
 
 export function initDailyTracker() {
     const dailyForm = document.getElementById('daily-form');
     if (!dailyForm) return;
 
-    // Создаем скрытое поле для времени, если его нет
+    // Создаем скрытое поле для времени
     let timeInput = document.getElementById('entry-time');
     if (!timeInput) {
         timeInput = document.createElement('input');
@@ -21,14 +27,20 @@ export function initDailyTracker() {
 
     const dateInput = document.getElementById('entry-date');
 
+    // Устанавливаем текущую дату при загрузке
+    currentDate = dateInput.value || new Date().toISOString().split('T')[0];
+
     // Обработчик изменения даты
     dateInput.addEventListener('change', () => {
-        const newDate = dateInput.value;
-        loadTodayData(newDate);
+        // Сохраняем черновик для текущей даты
+        saveDraft(currentDate);
+
+        // Загружаем данные для новой даты
+        currentDate = dateInput.value;
+        loadTodayData(currentDate);
     });
 
     // Загрузка данных для текущей даты
-    const currentDate = dateInput.value || new Date().toISOString().split('T')[0];
     loadTodayData(currentDate);
 
     // Инициализация RPE
@@ -37,7 +49,8 @@ export function initDailyTracker() {
     // Инициализация контейнера взвешиваний
     const addWeightBtn = document.getElementById('add-weight');
     if (addWeightBtn) {
-        addWeightBtn.addEventListener('click', addWeightEntry);
+        // Исправлено: обернули в функцию, чтобы не передавать событие
+        addWeightBtn.addEventListener('click', () => addWeightEntry());
     }
 
     // Обработка формы
@@ -45,24 +58,109 @@ export function initDailyTracker() {
         const currentDate = document.getElementById('entry-date').value;
         handleDailySubmit(e, currentDate);
     });
+
+    // Обработчики изменений для автосохранения
+    setupAutoSave();
 }
 
-function initRPEVisibility() {
-    const workoutSelect = document.getElementById('workout-data');
-    const rpeContainer = document.getElementById('rpe-container');
+function setupAutoSave() {
+    // Список всех полей формы, которые нужно отслеживать
+    const fieldsToTrack = [
+        'pulse', 'sleep-hours', 'sleep-minutes', 'steps',
+        'calories', 'alcohol', 'workout-data', 'rpe', 'mood', 'notes'
+    ];
 
-    if (workoutSelect && rpeContainer) {
-        rpeContainer.style.display = workoutSelect.value !== 'none' ? 'block' : 'none';
-        workoutSelect.addEventListener('change', () => {
-            rpeContainer.style.display = workoutSelect.value !== 'none' ? 'block' : 'none';
-        });
-    }
+    // Обработчики для обычных полей ввода
+    fieldsToTrack.forEach(id => {
+        const field = document.getElementById(id);
+        if (field) {
+            field.addEventListener('input', () => markFormChanged());
+        }
+    });
+
+    // Обработчики для радио-кнопок энергии
+    document.querySelectorAll('input[name="energy"]').forEach(radio => {
+        radio.addEventListener('change', () => markFormChanged());
+    });
+
+    // Обработчики для полей веса (динамически добавляемые)
+    document.getElementById('weighings-container')?.addEventListener('input', (e) => {
+        if (e.target.classList.contains('weight-value') ||
+            e.target.classList.contains('weight-condition')) {
+            markFormChanged();
+        }
+    });
+
+    // Автосохранение при закрытии вкладки/страницы
+    window.addEventListener('beforeunload', (e) => {
+        if (isFormChanged) {
+            saveDraft(currentDate);
+            // Предупреждение для пользователя (необязательно)
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+
+    // Автосохранение каждые 30 секунд
+    setInterval(() => {
+        if (isFormChanged) {
+            saveDraft(currentDate);
+            console.log('Автосохранение черновика');
+        }
+    }, 30000);
+}
+
+function markFormChanged() {
+    isFormChanged = true;
+    // Можно добавить визуальный индикатор изменений
+    document.getElementById('daily-form').classList.add('unsaved-changes');
+}
+
+function saveDraft(date) {
+    if (!isFormChanged) return;
+
+    const draft = {
+        pulse: document.getElementById('pulse').value,
+        sleepHours: document.getElementById('sleep-hours').value,
+        sleepMinutes: document.getElementById('sleep-minutes').value,
+        energyLevel: document.querySelector('input[name="energy"]:checked')?.value,
+        steps: document.getElementById('steps').value,
+        calories: document.getElementById('calories').value,
+        alcohol: document.getElementById('alcohol').value,
+        workout: document.getElementById('workout-data').value,
+        rpe: document.getElementById('rpe').value,
+        mood: document.getElementById('mood').value,
+        notes: document.getElementById('notes').value,
+        weighings: []
+    };
+
+    // Сохраняем данные о взвешиваниях
+    document.querySelectorAll('.weight-entry').forEach(entry => {
+        const weight = entry.querySelector('.weight-value').value;
+        const condition = entry.querySelector('.weight-condition').value;
+        if (weight || condition) {
+            draft.weighings.push({ weight, condition });
+        }
+    });
+
+    saveFormDraft(date, draft);
+    isFormChanged = false;
+    document.getElementById('daily-form').classList.remove('unsaved-changes');
 }
 
 function loadTodayData(date) {
     const healthData = getHealthData();
     const timeInput = document.getElementById('entry-time');
 
+    // Проверяем, есть ли черновик для этой даты
+    const draft = getFormDraft(date);
+    if (draft) {
+        populateFormFromDraft(draft);
+        console.log('Загружен черновик для', date);
+        return;
+    }
+
+    // Если нет черновика, загружаем сохраненные данные
     if (healthData[date]?.length > 0) {
         // Берем последнюю запись за день
         const lastEntry = healthData[date][healthData[date].length - 1];
@@ -80,7 +178,58 @@ function loadTodayData(date) {
         // Сбрасываем флаг редактирования
         delete document.getElementById('daily-form').dataset.editing;
         // Очищаем форму
-        populateForm({});
+        clearDailyForm();
+    }
+}
+
+function populateFormFromDraft(draft) {
+    const setValue = (id, value) => {
+        const element = document.getElementById(id);
+        if (element && value !== undefined && value !== null) {
+            element.value = value;
+        }
+    };
+
+    setValue('pulse', draft.pulse);
+    setValue('sleep-hours', draft.sleepHours);
+    setValue('sleep-minutes', draft.sleepMinutes);
+    setValue('steps', draft.steps);
+    setValue('calories', draft.calories);
+    setValue('alcohol', draft.alcohol);
+    setValue('workout-data', draft.workout);
+    setValue('rpe', draft.rpe);
+    setValue('mood', draft.mood);
+    setValue('notes', draft.notes);
+
+    // Радио кнопки энергии
+    if (draft.energyLevel) {
+        const energyRadio = document.querySelector(`input[name="energy"][value="${draft.energyLevel}"]`);
+        if (energyRadio) energyRadio.checked = true;
+    }
+
+    // Вес и условия взвешивания
+    const weighingsContainer = document.getElementById('weighings-container');
+    weighingsContainer.innerHTML = '';
+
+    if (draft.weighings && draft.weighings.length > 0) {
+        draft.weighings.forEach(w => addWeightEntry(w.weight, w.condition));
+    } else {
+        addWeightEntry(); // Пустое поле
+    }
+
+    // Обновляем видимость RPE
+    initRPEVisibility();
+}
+
+function initRPEVisibility() {
+    const workoutSelect = document.getElementById('workout-data');
+    const rpeContainer = document.getElementById('rpe-container');
+
+    if (workoutSelect && rpeContainer) {
+        rpeContainer.style.display = workoutSelect.value !== 'none' ? 'block' : 'none';
+        workoutSelect.addEventListener('change', () => {
+            rpeContainer.style.display = workoutSelect.value !== 'none' ? 'block' : 'none';
+        });
     }
 }
 
@@ -100,8 +249,6 @@ export function populateForm(data) {
     setValue('pulse', data.pulse);
     setValue('sleep-hours', data.sleepDuration ? data.sleepDuration.split(':')[0] : '');
     setValue('sleep-minutes', data.sleepDuration ? data.sleepDuration.split(':')[1] : '');
-    setValue('weight', data.weight);
-    setValue('weight-condition', data.weightCondition);
     setValue('steps', data.steps);
     setValue('calories', data.calories);
     setValue('alcohol', data.alcohol);
@@ -214,6 +361,11 @@ function handleDailySubmit(e, date) {
     if (typeof loadHistoryData === 'function') {
         loadHistoryData();
     }
+
+    // Удаляем черновик после сохранения
+    const drafts = JSON.parse(localStorage.getItem('dailyFormDrafts') || '{}');
+    delete drafts[date];
+    localStorage.setItem('dailyFormDrafts', JSON.stringify(drafts));
 }
 
 function addWeightEntry(weight = '', condition = '') {
@@ -230,12 +382,41 @@ function addWeightEntry(weight = '', condition = '') {
     container.appendChild(entry);
 
     // Обработчик удаления
-    entry.querySelector('.btn-remove-weight').addEventListener('click', () => {
+    const removeBtn = entry.querySelector('.btn-remove-weight');
+    removeBtn.addEventListener('click', () => {
         if (document.querySelectorAll('.weight-entry').length > 1) {
             entry.remove();
         } else {
             entry.querySelector('.weight-value').value = '';
             entry.querySelector('.weight-condition').value = '';
         }
+        markFormChanged(); // Помечаем форму как измененную
     });
+
+    // Обработчики изменений в полях взвешивания
+    entry.querySelector('.weight-value').addEventListener('input', markFormChanged);
+    entry.querySelector('.weight-condition').addEventListener('input', markFormChanged);
+}
+
+// Функция для очистки формы
+function clearDailyForm() {
+    document.getElementById('pulse').value = '';
+    document.getElementById('sleep-hours').value = '';
+    document.getElementById('sleep-minutes').value = '';
+    document.querySelectorAll('input[name="energy"]').forEach(radio => radio.checked = false);
+
+    const weighingsContainer = document.getElementById('weighings-container');
+    weighingsContainer.innerHTML = '';
+    addWeightEntry(); // Добавляем одно пустое поле для веса
+
+    document.getElementById('steps').value = '';
+    document.getElementById('calories').value = '';
+    document.getElementById('alcohol').value = '';
+    document.getElementById('workout-data').value = 'none';
+    document.getElementById('rpe').value = '';
+    document.getElementById('mood').value = '';
+    document.getElementById('notes').value = '';
+
+    // Обновляем видимость RPE
+    initRPEVisibility();
 }

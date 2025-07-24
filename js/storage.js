@@ -107,3 +107,14 @@ export function migrateData() {
         console.log('Данные успешно мигрированы');
     }
 }
+
+export function getFormDraft(date) {
+    const drafts = JSON.parse(localStorage.getItem('dailyFormDrafts') || '{}');
+    return drafts[date];
+}
+
+export function saveFormDraft(date, draft) {
+    const drafts = JSON.parse(localStorage.getItem('dailyFormDrafts') || '{}');
+    drafts[date] = draft;
+    localStorage.setItem('dailyFormDrafts', JSON.stringify(drafts));
+}
