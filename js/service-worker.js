@@ -1,5 +1,15 @@
-// service-worker.js
-const CACHE_NAME = 'health-diary-cache-v1';
+self.addEventListener('install', event => {
+    event.waitUntil(self.skipWaiting());
+    console.log('Service Worker installed');
+});
+
+self.addEventListener('activate', event => {
+    event.waitUntil(self.clients.claim());
+    console.log('Service Worker activated');
+});
+
+// Простая стратегия кэширования
+const CACHE_NAME = 'health-diary-v1';
 const urlsToCache = [
     '/health-diary/',
     '/health-diary/index.html',
@@ -13,21 +23,13 @@ const urlsToCache = [
 self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(CACHE_NAME)
-            .then(cache => {
-                console.log('Opened cache');
-                return cache.addAll(urlsToCache);
-            })
-            .catch(error => {
-                console.error('Cache addAll error:', error);
-            })
+            .then(cache => cache.addAll(urlsToCache))
     );
 });
 
 self.addEventListener('fetch', event => {
     event.respondWith(
         caches.match(event.request)
-            .then(response => {
-                return response || fetch(event.request);
-            })
+            .then(response => response || fetch(event.request))
     );
 });

@@ -157,7 +157,6 @@
 
             <div class="form-buttons">
                 <button type="submit" class="btn-save">Сохранить</button>
-                <button type="button" class="btn-add" id="edit-entry-btn">Редактировать</button>
             </div>
         </form>
     </div>
@@ -190,10 +189,14 @@
                     </thead>
                     <tbody id="sets-body">
                     <tr>
-                        <td><input type="number" class="set-weight" step="0.1" min="0"></td>
-                        <td><input type="number" class="set-reps" min="1"></td>
-                        <td><button type="button" class="btn-remove-set"><i class="fas fa-times"></i></button></td>
-                    </tr>
+                    <td><input type="number" class="set-weight" step="0.1" min="0"></td>
+                    <td><input type="number" class="set-reps" min="1"></td>
+                    <td>
+                        <label class="per-limb-label">
+                            <input type="checkbox" class="set-per-limb"}>
+                            На каждую конечность
+                        </label>
+                    </td>
                     </tbody>
                 </table>
                 <button type="button" id="add-set" class="btn-add">
@@ -203,7 +206,6 @@
 
             <div class="form-buttons">
                 <button type="submit" class="btn-save">Сохранить тренировку</button>
-                <button type="button" class="btn-add" id="edit-workout-btn">Редактировать</button>
             </div>
 
             <div id="saved-exercises">
@@ -269,10 +271,13 @@
 <script type="module" src="js/main.js"></script>
 <script>
     if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('service-worker.js')
-                .then(reg => console.log('SW registered:', reg))
-                .catch(err => console.error('SW registration failed:', err));
+        window.addEventListener('load', async () => {
+            try {
+                const reg = await navigator.serviceWorker.register('/service-worker.js');
+                console.log('ServiceWorker registered:', reg);
+            } catch (err) {
+                console.error('SW registration failed:', err);
+            }
         });
     }
 

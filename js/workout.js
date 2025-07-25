@@ -195,12 +195,12 @@ function addSetRow() {
     row.innerHTML = `
         <td><input type="number" class="set-weight" step="0.1" min="0" value="${lastWeight}"></td>
         <td><input type="number" class="set-reps" min="1" value="${lastReps}"></td>
+        <div>
         <td>
-            <label class="per-limb-label">
                 <input type="checkbox" class="set-per-limb" ${lastPerLimb ? 'checked' : ''}>
                 На каждую конечность
-            </label>
         </td>
+        </div>
         <td><button type="button" class="btn-remove-set"><i class="fas fa-times"></i></button></td>
     `;
     tbody.appendChild(row);
