@@ -18,6 +18,19 @@
     <script type="module" src="js/export.js"></script>
     <script type="module" src="js/main.js"></script>
     <script type="module" src="js/theme.js"></script>
+
+    <!-- Favicon -->
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+
+    <!-- Apple Touch Icon (основные размеры) -->
+    <link rel="apple-touch-icon" href="icons/apple-icon-180x180.png">
+
+    <!-- Manifest -->
+    <link rel="manifest" href="manifest.json">
+<!--    <link rel="manifest" href="manifest.webmanifest">-->
+
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#4A90E2">
 </head>
 <body>
 <div class="container">
@@ -249,5 +262,26 @@
 </div>
 
 <script type="module" src="js/main.js"></script>
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('service-worker.js')
+                .then(reg => console.log('SW registered:', reg))
+                .catch(err => console.error('SW registration failed:', err));
+        });
+    }
+
+    window.addEventListener('beforeinstallprompt', e => {
+        e.preventDefault();
+        const installBtn = document.createElement('button');
+        installBtn.textContent = 'Установить приложение';
+        installBtn.className = 'install-button';
+        installBtn.onclick = () => {
+            e.prompt();
+            installBtn.remove();
+        };
+        document.body.appendChild(installBtn);
+    });
+</script>
 </body>
 </html>
