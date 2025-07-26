@@ -160,14 +160,18 @@ export function populateWorkoutForm(exercise) {
 }
 
 export function initExercisesList() {
-    const exercisesList = getExercisesList();
-    const exerciseListEl = document.getElementById('exercise-list');
+    let exercisesList = getExercisesList();
 
+    // Фильтрация пустых названий
+    exercisesList = exercisesList.filter(name => name && name.trim() !== '');
+
+    const exerciseListEl = document.getElementById('exercise-list');
     if (exerciseListEl) {
         exerciseListEl.innerHTML = '';
         exercisesList.forEach(exercise => {
             const option = document.createElement('option');
             option.value = exercise;
+            option.textContent = exercise;
             exerciseListEl.appendChild(option);
         });
     }
@@ -218,8 +222,14 @@ function saveWorkout(e) {
 
     const workoutHistory = getWorkoutHistory();
     const date = new Date().toISOString().split('T')[0];
-    const exerciseName = document.getElementById('exercise-name').value;
+    const exerciseName = document.getElementById('exercise-name').value.trim(); // Добавлено trim()
     const rpeInput = document.getElementById('workout-rpe');
+
+    // Проверка названия упражнения
+    if (!exerciseName) {
+        alert('Введите название упражнения!');
+        return;
+    }
 
     // Собираем данные о подходах
     const setsData = [];

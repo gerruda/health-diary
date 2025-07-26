@@ -123,3 +123,36 @@ export function saveFormDraft(date, draft) {
     drafts[date] = draft;
     localStorage.setItem('dailyFormDrafts', JSON.stringify(drafts));
 }
+
+export function cleanupWorkoutHistory() {
+    const workoutHistory = getWorkoutHistory();
+    let hasChanges = false;
+
+    for (const date in workoutHistory) {
+        // Фильтруем упражнения с пустым названием
+        const filtered = workoutHistory[date].filter(exercise =>
+            exercise.name && exercise.name.trim() !== ''
+        );
+
+        if (filtered.length !== workoutHistory[date].length) {
+            workoutHistory[date] = filtered;
+            hasChanges = true;
+        }
+    }
+
+    if (hasChanges) {
+        saveWorkoutHistory(workoutHistory);
+        console.log('Workout history cleaned up');
+    }
+}
+
+// Очистка списка упражнений
+export function cleanupExercisesList() {
+    let exercisesList = getExercisesList();
+    const filtered = exercisesList.filter(name => name && name.trim() !== '');
+
+    if (filtered.length !== exercisesList.length) {
+        saveExercisesList(filtered);
+        console.log('Exercises list cleaned up');
+    }
+}

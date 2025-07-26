@@ -593,6 +593,9 @@ function initExerciseChart() {
 }
 
 function prepareExerciseData(exerciseName) {
+    console.log(`Поиск данных для: "${exerciseName}"`);
+    console.log('Workout History:', getWorkoutHistory());
+
     const workoutHistory = getWorkoutHistory();
     const result = [];
 
@@ -663,15 +666,14 @@ function populateExerciseFilter() {
         return;
     }
 
-    // Очищаем существующие опции
     filter.innerHTML = '<option value="">Выберите упражнение</option>';
 
-    // Получаем список всех уникальных упражнений из истории тренировок
     const workoutHistory = getWorkoutHistory();
     const exercises = new Set();
 
     for (const date in workoutHistory) {
         workoutHistory[date].forEach(exercise => {
+            // Фильтрация пустых названий
             if (exercise.name && exercise.name.trim() !== '') {
                 exercises.add(exercise.name);
             }
