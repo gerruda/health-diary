@@ -271,10 +271,11 @@
 
 <script type="module" src="js/main.js"></script>
 <script>
-    if ('serviceWorker' in navigator) {
+        if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
             try {
-                const reg = await navigator.serviceWorker.register('/js/service-worker.js');
+                // Используйте относительный путь вместо абсолютного
+                const reg = await navigator.serviceWorker.register('js/service-worker.js');
                 console.log('ServiceWorker registered:', reg);
             } catch (err) {
                 console.error('SW registration failed:', err);
