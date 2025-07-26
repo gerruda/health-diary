@@ -199,7 +199,8 @@ function addSetRow() {
 
     const row = document.createElement('tr');
     row.innerHTML = `
-        <td><input type="number" class="set-weight" step="0.1" min="0" value="${lastWeight}"></td>
+        <td><input type="number" class="set-weight" step="0.1" min="0" value="${lastWeight}" 
+                    oninput="validateWeightInput(this)"></td>
         <td><input type="number" class="set-reps" min="1" value="${lastReps}"></td>
         <div>
         <td>
@@ -239,7 +240,8 @@ function saveWorkout(e) {
         const repsInput = row.querySelector('.set-reps');
         const perLimbCheckbox = row.querySelector('.set-per-limb');
 
-        if (weightInput && repsInput && weightInput.value && repsInput.value) {
+        // Пропускаем подходы с нулевым весом
+        if (weightInput && repsInput && weightInput.value && repsInput.value && weightInput.value > 0) {
             setsData.push({
                 weight: parseFloat(weightInput.value),
                 reps: parseInt(repsInput.value),
@@ -247,6 +249,20 @@ function saveWorkout(e) {
             });
         }
     });
+
+    if (setsData.length === 0) {
+        const hasZeroWeightSets = Array.from(setRows).some(row => {
+            const weightInput = row.querySelector('.set-weight');
+            return weightInput && weightInput.value === "0";
+        });
+
+        if (hasZeroWeightSets) {
+            alert('Вес не может быть равен 0! Исправьте значения в подходах.');
+        } else {
+            alert('Добавьте хотя бы один подход с валидными данными!');
+        }
+        return;
+    }
 
     if (setsData.length === 0) {
         alert('Добавьте хотя бы один подход!');
@@ -339,4 +355,10 @@ function clearWorkoutForm() {
 
     // Сбрасываем флаг редактирования
     delete document.getElementById('workout-form').dataset.editing;
+}
+
+function validateWeightInput(input) {
+    if (input.value < 0) {
+        input.value = '';
+    }
 }

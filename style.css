@@ -461,3 +461,29 @@ button:hover {
     font-size: 12px;
 }
 
+.metric-selector {
+    margin: 15px 0;
+    padding: 10px;
+    background: var(--card-bg);
+    border-radius: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.metric-selector label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.metric-selector label::before {
+    content: '';
+    width: 16px;
+    height: 16px;
+    display: inline-block;
+}
+
+.metric-selector label[for="metric-orm"]::before {
+    background: url('icons/weight-icon.svg');
+}

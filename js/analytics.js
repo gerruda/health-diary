@@ -1,12 +1,26 @@
-import { getHealthData, getWorkoutHistory } from './storage.js';
-import { initExercisesList } from './workout.js'
+import {getExerciseMetrics, getHealthData, getWorkoutHistory, saveExerciseMetrics} from './storage.js';
 
 export function initAnalytics() {
+    const metrics = getExerciseMetrics();
+    document.querySelector(`input[name="exercise-metric"][value="${metrics.selectedMetric}"]`).checked = true;
+
     initWeightChart();
     initSleepChart();
     initEnergyChart();
     populateExerciseFilter();
     initExerciseChart();
+
+    // Обработчики для переключателей метрик
+    document.querySelectorAll('input[name="exercise-metric"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+            saveExerciseMetrics({ selectedMetric: radio.value });
+
+            if (exerciseChart) {
+                exerciseChart.destroy();
+            }
+            initExerciseChart();
+        });
+    });
 }
 
 function initWeightChart() {
@@ -205,7 +219,7 @@ function prepareWeightData() {
     workouts.sort((a, b) => a.x.localeCompare(b.x));
     alcohol.sort((a, b) => a.x.localeCompare(b.x));
 
-    return { weights, workouts, alcohol };
+    return {weights, workouts, alcohol};
 }
 
 function initSleepChart() {
@@ -386,7 +400,7 @@ function initEnergyChart() {
                     max: 5,
                     ticks: {
                         stepSize: 1,
-                        callback: function(value) {
+                        callback: function (value) {
                             const energyLevels = {
                                 1: 'Очень низкий',
                                 2: 'Низкий',
@@ -498,8 +512,11 @@ function initExerciseChart() {
         return;
     }
 
+    // Определяем тип метрики
+    const metricType = document.querySelector('input[name="exercise-metric"]:checked')?.value || 'orm';
+
     // Получаем данные для графика
-    const data = prepareExerciseData(exerciseName);
+    const data = prepareExerciseData(exerciseName, metricType);
 
     // Проверяем наличие данных
     if (data.dates.length < 2) {
@@ -530,8 +547,8 @@ function initExerciseChart() {
         data: {
             labels: data.dates.map(formatDate),
             datasets: [{
-                label: `1ПМ ${exerciseName}`,
-                data: data.oneRepMax,
+                label: getMetricLabel(metricType, exerciseName),
+                data: data.values,
                 borderColor: '#ff6384',
                 backgroundColor: bgColor,
                 borderWidth: 2,
@@ -557,7 +574,7 @@ function initExerciseChart() {
                     beginAtZero: true,
                     title: {
                         display: true,
-                        text: '1ПМ (кг)'
+                        text: getMetricYLabel(metricType)
                     },
                     grid: {
                         color: gridColor
@@ -592,51 +609,67 @@ function initExerciseChart() {
     });
 }
 
-function prepareExerciseData(exerciseName) {
-    console.log(`Поиск данных для: "${exerciseName}"`);
-    console.log('Workout History:', getWorkoutHistory());
+function getMetricYLabel(metricType) {
+    const labels = {
+        'orm': '1ПМ (кг)',
+        'volume': 'Объём (кг×повт)',
+        'reps': 'Количество повторений',
+        'max-reps': 'Макс. повторения'
+    };
+    return labels[metricType] || 'Значение';
+}
 
+// Обновим prepareExerciseData
+function prepareExerciseData(exerciseName, metricType = 'orm') {
     const workoutHistory = getWorkoutHistory();
     const result = [];
 
-    // Проходим по всем дням
     for (const date in workoutHistory) {
         workoutHistory[date].forEach(exercise => {
-            // Более гибкое сравнение имен упражнений
             if (exercise.name && exercise.name.trim().toLowerCase() === exerciseName.trim().toLowerCase() &&
                 exercise.sets && exercise.sets.length > 0) {
 
-                let maxOneRepMax = 0;
+                let metricValue = 0;
                 let hasValidSet = false;
 
-                // Проходим по всем подходам
                 exercise.sets.forEach(set => {
-                    // Проверяем наличие данных для расчета 1ПМ
-                    if (set.weight && set.reps) {
-                        // Конвертируем в числа
-                        const weight = parseFloat(set.weight);
+                    if (set.reps) {
+                        let weight = parseFloat(set.weight) || 0;
                         const reps = parseInt(set.reps);
 
-                        if (!isNaN(weight) && !isNaN(reps) && reps > 0) {
+                        // Если вес 0 и указано "на каждую конечность" - считаем как 0
+                        const effectiveWeight = set.perLimb ? weight * 2 : weight;
+
+                        if (!isNaN(reps) && reps > 0) {
                             hasValidSet = true;
 
-                            // Рассчитываем 1ПМ, учитывая флаг perLimb
-                            const effectiveWeight = set.perLimb ? weight * 2 : weight;
-                            const oneRepMax = calculateOneRepMax(effectiveWeight, reps);
-
-                            if (oneRepMax > maxOneRepMax) {
-                                maxOneRepMax = oneRepMax;
+                            switch (metricType) {
+                                case 'volume': // Общий объем
+                                    metricValue += effectiveWeight * reps;
+                                    break;
+                                case 'reps': // Суммарные повторения
+                                    metricValue += reps;
+                                    break;
+                                case 'max-reps': // Максимальные повторения
+                                    if (reps > metricValue) metricValue = reps;
+                                    break;
+                                case 'orm': // 1ПМ
+                                default:
+                                    if (effectiveWeight > 0) {
+                                        const oneRepMax = calculateOneRepMax(effectiveWeight, reps);
+                                        if (oneRepMax > metricValue) metricValue = oneRepMax;
+                                    }
+                                    break;
                             }
                         }
                     }
                 });
 
-                // Добавляем запись, если найден хотя бы один валидный подход
                 if (hasValidSet) {
                     result.push({
                         date: date,
-                        oneRepMax: maxOneRepMax,
-                        note: '' // Заметок пока нет в данных
+                        value: metricValue,
+                        note: ''
                     });
                 }
             }
@@ -648,15 +681,21 @@ function prepareExerciseData(exerciseName) {
 
     return {
         dates: result.map(item => item.date),
-        oneRepMax: result.map(item => item.oneRepMax),
+        values: result.map(item => item.value),
         notes: result.map(item => item.note)
     };
 }
 
 // Функция расчета одноповторного максимума
 function calculateOneRepMax(weight, reps) {
-    // Используем формулу Эпли: 1ПМ = вес × (1 + 0.0333 × повторения)
-    return Math.round(weight * (1 + reps / 30) * 10) / 10;
+    if (weight <= 0 || reps <= 0) return 0;
+
+    // Используем формулу Brzycki для более точных расчетов
+    if (reps === 1) return weight;
+
+    // 1ПМ = вес / (1.0278 - 0.0278 * повторения)
+    const oneRepMax = weight / (1.0278 - (0.0278 * reps));
+    return Math.round(oneRepMax * 10) / 10; // Округляем до 0.1
 }
 
 function populateExerciseFilter() {

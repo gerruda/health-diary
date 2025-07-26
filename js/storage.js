@@ -44,7 +44,9 @@ export function getWeightConditions() {
 }
 
 export function getExercisesList() {
-    return JSON.parse(localStorage.getItem('exercisesList')) || [];
+    const list = JSON.parse(localStorage.getItem('exercisesList')) || [];
+    // Фильтрация пустых названий
+    return list.filter(name => name && name.trim() !== '');
 }
 
 // Сохранение данных
@@ -61,28 +63,49 @@ export function saveWeightConditions(conditions) {
 }
 
 export function saveExercisesList(list) {
-    localStorage.setItem('exercisesList', JSON.stringify(list));
+    // Фильтрация пустых названий перед сохранением
+    const filteredList = list.filter(name => name && name.trim() !== '');
+    localStorage.setItem('exercisesList', JSON.stringify(filteredList));
 }
 
 export function saveWorkoutHistory(history) {
-    localStorage.setItem('workoutHistory', JSON.stringify(history));
+    // Очистка перед сохранением
+    const cleanedHistory = cleanWorkoutHistory(history);
+    localStorage.setItem('workoutHistory', JSON.stringify(cleanedHistory));
 }
 
 // Получение истории тренировок с расчетом 1ПМ
 export function getWorkoutHistory() {
     const history = JSON.parse(localStorage.getItem('workoutHistory')) || {};
+    return cleanWorkoutHistory(history);
+}
 
-    // Гарантируем наличие ID для всех тренировок
+// Очистка истории тренировок
+function cleanWorkoutHistory(history) {
+    const cleaned = {};
+
     for (const date in history) {
-        history[date] = history[date].map(exercise => {
-            if (!exercise.id) {
-                return {...exercise, id: Date.now()};
-            }
-            return exercise;
+        // Фильтруем упражнения с пустым названием
+        cleaned[date] = history[date].filter(exercise =>
+            exercise.name && exercise.name.trim() !== ''
+        );
+
+        // Фильтруем подходы с невалидными данными
+        cleaned[date] = cleaned[date].map(exercise => {
+            if (!exercise.sets) return exercise;
+
+            return {
+                ...exercise,
+                sets: exercise.sets.filter(set => {
+                    // Удаляем подходы с нулевым весом
+                    const weight = parseFloat(set.weight);
+                    return !isNaN(weight) && weight > 0;
+                })
+            };
         });
     }
 
-    return history;
+    return cleaned;
 }
 
 export function migrateData() {
@@ -124,35 +147,24 @@ export function saveFormDraft(date, draft) {
     localStorage.setItem('dailyFormDrafts', JSON.stringify(drafts));
 }
 
+// Автоматическая очистка при каждом получении данных
 export function cleanupWorkoutHistory() {
     const workoutHistory = getWorkoutHistory();
-    let hasChanges = false;
-
-    for (const date in workoutHistory) {
-        // Фильтруем упражнения с пустым названием
-        const filtered = workoutHistory[date].filter(exercise =>
-            exercise.name && exercise.name.trim() !== ''
-        );
-
-        if (filtered.length !== workoutHistory[date].length) {
-            workoutHistory[date] = filtered;
-            hasChanges = true;
-        }
-    }
-
-    if (hasChanges) {
-        saveWorkoutHistory(workoutHistory);
-        console.log('Workout history cleaned up');
-    }
+    saveWorkoutHistory(workoutHistory);
 }
 
-// Очистка списка упражнений
 export function cleanupExercisesList() {
-    let exercisesList = getExercisesList();
-    const filtered = exercisesList.filter(name => name && name.trim() !== '');
+    const exercisesList = getExercisesList();
+    saveExercisesList(exercisesList);
+}
 
-    if (filtered.length !== exercisesList.length) {
-        saveExercisesList(filtered);
-        console.log('Exercises list cleaned up');
-    }
+// Дополнительные функции для аналитики
+export function getExerciseMetrics() {
+    return JSON.parse(localStorage.getItem('exerciseMetrics')) || {
+        selectedMetric: 'orm'
+    };
+}
+
+export function saveExerciseMetrics(metrics) {
+    localStorage.setItem('exerciseMetrics', JSON.stringify(metrics));
 }
