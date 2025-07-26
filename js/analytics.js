@@ -1,4 +1,5 @@
 import { getHealthData, getWorkoutHistory } from './storage.js';
+import { initExercisesList } from './workout.js'
 
 export function initAnalytics() {
     initWeightChart();
@@ -598,10 +599,12 @@ function prepareExerciseData(exerciseName) {
     // Проходим по всем дням
     for (const date in workoutHistory) {
         workoutHistory[date].forEach(exercise => {
-            // Проверяем, что это нужное упражнение
-            if (exercise.name === exerciseName && exercise.sets) {
+            // Более гибкое сравнение имен упражнений
+            if (exercise.name && exercise.name.trim().toLowerCase() === exerciseName.trim().toLowerCase() &&
+                exercise.sets && exercise.sets.length > 0) {
+
                 let maxOneRepMax = 0;
-                let note = '';
+                let hasValidSet = false;
 
                 // Проходим по всем подходам
                 exercise.sets.forEach(set => {
@@ -612,23 +615,25 @@ function prepareExerciseData(exerciseName) {
                         const reps = parseInt(set.reps);
 
                         if (!isNaN(weight) && !isNaN(reps) && reps > 0) {
+                            hasValidSet = true;
+
                             // Рассчитываем 1ПМ, учитывая флаг perLimb
                             const effectiveWeight = set.perLimb ? weight * 2 : weight;
                             const oneRepMax = calculateOneRepMax(effectiveWeight, reps);
+
                             if (oneRepMax > maxOneRepMax) {
                                 maxOneRepMax = oneRepMax;
-                                // Заметки для упражнения у нас нет, оставляем пустым
                             }
                         }
                     }
                 });
 
-                // Добавляем запись, если найден 1ПМ
-                if (maxOneRepMax > 0) {
+                // Добавляем запись, если найден хотя бы один валидный подход
+                if (hasValidSet) {
                     result.push({
                         date: date,
                         oneRepMax: maxOneRepMax,
-                        note: note
+                        note: '' // Заметок пока нет в данных
                     });
                 }
             }
@@ -652,8 +657,11 @@ function calculateOneRepMax(weight, reps) {
 }
 
 function populateExerciseFilter() {
-    const filter = document.getElementById('exercisesList');
-    if (!filter) return;
+    const filter = document.getElementById('exercise-filter');
+    if (!filter) {
+        console.error('Элемент exercise-filter не найден');
+        return;
+    }
 
     // Очищаем существующие опции
     filter.innerHTML = '<option value="">Выберите упражнение</option>';
@@ -664,14 +672,17 @@ function populateExerciseFilter() {
 
     for (const date in workoutHistory) {
         workoutHistory[date].forEach(exercise => {
-            if (exercise.name) {
+            if (exercise.name && exercise.name.trim() !== '') {
                 exercises.add(exercise.name);
             }
         });
     }
 
+    // Сортируем упражнения по алфавиту
+    const sortedExercises = Array.from(exercises).sort();
+
     // Добавляем упражнения в выпадающий список
-    exercises.forEach(exercise => {
+    sortedExercises.forEach(exercise => {
         const option = document.createElement('option');
         option.value = exercise;
         option.textContent = exercise;

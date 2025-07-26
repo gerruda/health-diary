@@ -9,6 +9,8 @@ import { loadHistoryData } from "./history.js";
 let setCount = 0;
 
 export function initWorkoutTracker() {
+    initExercisesList()
+
     const workoutForm = document.getElementById('workout-form');
     if (!workoutForm) return;
 
@@ -157,7 +159,7 @@ export function populateWorkoutForm(exercise) {
     setCount = exercise.sets.length;
 }
 
-function initExercisesList() {
+export function initExercisesList() {
     const exercisesList = getExercisesList();
     const exerciseListEl = document.getElementById('exercise-list');
 
