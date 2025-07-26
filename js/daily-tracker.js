@@ -13,6 +13,8 @@ let isFormChanged = false;
 let currentDate = '';
 
 export function initDailyTracker() {
+    initWeightConditionsList();
+
     const dailyForm = document.getElementById('daily-form');
     if (!dailyForm) return;
 
@@ -326,8 +328,8 @@ function handleDailySubmit(e, date) {
             });
 
             // Сохранение условия взвешивания
-            if (condition && !weightConditions.includes(condition)) {
-                weightConditions.push(condition);
+            if (condition) {
+                addWeightCondition(condition);
             }
         }
     });
@@ -400,14 +402,21 @@ function addWeightEntry(weight = '', condition = '') {
     const container = document.getElementById('weighings-container');
     const entry = document.createElement('div');
     entry.className = 'weight-entry';
+
+    // Если условие не указано, используем первое предустановленное
+    const defaultCondition = condition || getWeightConditions()[0];
+
     entry.innerHTML = `
         <input type="number" class="weight-value" placeholder="Вес (кг)" 
                step="0.1" min="30" max="200" value="${weight}">
         <input type="text" class="weight-condition" list="condition-list" 
-               placeholder="Условие" value="${condition}">
+               placeholder="Условие" value="${defaultCondition}">
         <button type="button" class="btn-remove-weight">×</button>
     `;
     container.appendChild(entry);
+
+    // Инициализация списка условий
+    initWeightConditionsList();
 
     // Обработчик удаления
     const removeBtn = entry.querySelector('.btn-remove-weight');
@@ -418,19 +427,57 @@ function addWeightEntry(weight = '', condition = '') {
             entry.querySelector('.weight-value').value = '';
             entry.querySelector('.weight-condition').value = '';
         }
-        markFormChanged(); // Помечаем форму как измененную
+        markFormChanged();
     });
 
-    // Обработчики изменений в полях взвешивания
+    // Обработчики изменений
     entry.querySelector('.weight-value').addEventListener('input', markFormChanged);
     entry.querySelector('.weight-condition').addEventListener('input', markFormChanged);
+
+    // Добавляем новое условие при вводе
+    entry.querySelector('.weight-condition').addEventListener('change', function() {
+        if (this.value) {
+            addWeightCondition(this.value);
+        }
+    });
+}
+
+// Функция для инициализации списка условий
+function initWeightConditionsList() {
+    const conditions = getWeightConditions();
+    const datalist = document.getElementById('condition-list');
+    if (!datalist) return;
+
+    // Очищаем список перед обновлением
+    datalist.innerHTML = '';
+
+    // Добавляем все сохраненные условия
+    conditions.forEach(condition => {
+        if (condition) {
+            const option = document.createElement('option');
+            option.value = condition;
+            datalist.appendChild(option);
+        }
+    });
+}
+
+// Функция для добавления нового условия
+function addWeightCondition(condition) {
+    const conditions = getWeightConditions();
+
+    // Проверяем, нет ли уже такого условия
+    if (condition && !conditions.includes(condition)) {
+        conditions.push(condition);
+        saveWeightConditions(conditions);
+        initWeightConditionsList(); // Обновляем список
+    }
 }
 
 // Функция для очистки формы
 function clearDailyForm() {
     document.getElementById('pulse').value = '';
-    document.getElementById('sleep-hours').value = '';
-    document.getElementById('sleep-minutes').value = '';
+    document.getElementById('sleep-hours').value = '7';
+    document.getElementById('sleep-minutes').value = '30';
     document.querySelectorAll('input[name="energy"]').forEach(radio => radio.checked = false);
 
     const weighingsContainer = document.getElementById('weighings-container');
