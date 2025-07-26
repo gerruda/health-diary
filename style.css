@@ -544,3 +544,35 @@ button:hover {
         padding: 5px;
     }
 }
+
+.per-limb-cell {
+    width: 40px;
+    text-align: center;
+}
+
+.per-limb-label {
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.per-limb-icon {
+    font-size: 1.2em;
+    padding: 5px;
+    display: inline-block;
+}
+
+.set-inputs {
+    display: flex;
+    gap: 10px;
+}
+
+.set-inputs input {
+    flex: 1;
+    min-width: 80px;
+}
+
+.remove-cell {
+    width: 40px;
+}

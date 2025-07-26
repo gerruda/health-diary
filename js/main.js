@@ -21,6 +21,12 @@ document.addEventListener('DOMContentLoaded', () => {
     cleanupWorkoutHistory();
     cleanupExercisesList();
 
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('service-worker.js').then(reg => {
+            reg.update(); // Принудительное обновление
+        });
+    }
+
     // Затем инициализация всех модулей с проверкой
     try {
         initTheme();

@@ -143,16 +143,16 @@ export function populateWorkoutForm(exercise) {
                    value="${set.weight || ''}" placeholder="Вес (кг)">
             <input type="number" class="set-reps" min="1" 
                    value="${set.reps || ''}" placeholder="Повторения">
-        </td>
-        <td class="per-limb-cell">
-            <label class="per-limb-label">
-                <input type="checkbox" class="set-per-limb" ${set.perLimb ? 'checked' : ''}>
-                На каждую конечность
+          </td>
+          <td class="per-limb-cell">
+            <label class="per-limb-label" title="На каждую конечность">
+              <input type="checkbox" class="set-per-limb" ${set.perLimb ? 'checked' : ''}>
+              <span class="per-limb-icon">⇆</span>
             </label>
-        </td>
-        <td class="remove-cell">
+          </td>
+          <td class="remove-cell">
             <button type="button" class="btn-remove-set"><i class="fas fa-times"></i></button>
-        </td>
+          </td>
     `;
             setsContainer.appendChild(row);
         });
@@ -202,22 +202,22 @@ function addSetRow() {
 
     const row = document.createElement('tr');
     row.innerHTML = `
-        <td class="set-inputs">
-            <input type="number" class="set-weight" step="0.1" min="0" 
-                   value="${lastWeight}" placeholder="Вес (кг)">
-            <input type="number" class="set-reps" min="1" 
-                   value="${lastReps}" placeholder="Повторения">
-        </td>
-        <td class="per-limb-cell">
-            <label class="per-limb-label">
-                <input type="checkbox" class="set-per-limb" ${lastPerLimb ? 'checked' : ''}>
-                На каждую конечность
-            </label>
-        </td>
-        <td class="remove-cell">
-            <button type="button" class="btn-remove-set"><i class="fas fa-times"></i></button>
-        </td>
-    `;
+      <td class="set-inputs">
+        <input type="number" class="set-weight" step="0.1" min="0" 
+               value="${lastWeight}" placeholder="Вес (кг)">
+        <input type="number" class="set-reps" min="1" 
+               value="${lastReps}" placeholder="Повторения">
+      </td>
+      <td class="per-limb-cell">
+        <label class="per-limb-label" title="На каждую конечность">
+          <input type="checkbox" class="set-per-limb" ${lastPerLimb ? 'checked' : ''}>
+          <span class="per-limb-icon">⇆</span>
+        </label>
+      </td>
+      <td class="remove-cell">
+        <button type="button" class="btn-remove-set"><i class="fas fa-times"></i></button>
+      </td>
+`;
     tbody.appendChild(row);
 
     // Фокус на поле веса нового подхода
