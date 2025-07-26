@@ -9,7 +9,7 @@ import { loadHistoryData } from "./history.js";
 let setCount = 0;
 
 export function initWorkoutTracker() {
-    initExercisesList()
+    initExercisesList();
 
     const workoutForm = document.getElementById('workout-form');
     if (!workoutForm) return;
@@ -25,9 +25,6 @@ export function initWorkoutTracker() {
     if (workoutTitle) {
         workoutTitle.textContent = 'Добавить упражнение';
     }
-
-    // Инициализация списка упражнений
-    initExercisesList();
 
     // Загружаем и отображаем сохраненные упражнения за сегодня
     loadTodayExercises();
@@ -58,7 +55,7 @@ function loadTodayExercises() {
     const today = new Date().toISOString().split('T')[0];
     const workoutHistory = getWorkoutHistory();
     const todayExercises = workoutHistory[today] || [];
-    const container = document.getElementById('exercises-list'); // Исправлено на exercises-list
+    const container = document.getElementById('exercises-list');
 
     if (!container) {
         console.error('Контейнер exercises-list не найден!');
@@ -234,7 +231,7 @@ function saveWorkout(e) {
 
     const workoutHistory = getWorkoutHistory();
     const date = new Date().toISOString().split('T')[0];
-    const exerciseName = document.getElementById('exercise-name').value.trim(); // Добавлено trim()
+    const exerciseName = document.getElementById('exercise-name').value.trim();
     const rpeInput = document.getElementById('workout-rpe');
 
     // Проверка названия упражнения
@@ -246,6 +243,8 @@ function saveWorkout(e) {
     // Собираем данные о подходах
     const setsData = [];
     const setRows = document.querySelectorAll('#sets-body tr');
+    let hasInvalidSets = false;
+
     setRows.forEach(row => {
         const weightInput = row.querySelector('.set-weight');
         const repsInput = row.querySelector('.set-reps');
@@ -260,15 +259,12 @@ function saveWorkout(e) {
                 reps: parseInt(repsInput.value),
                 perLimb: perLimbCheckbox ? perLimbCheckbox.checked : false
             });
+        } else if (repsInput && !repsInput.value) {
+            hasInvalidSets = true;
         }
     });
 
     if (setsData.length === 0) {
-        const hasInvalidSets = Array.from(setRows).some(row => {
-            const repsInput = row.querySelector('.set-reps');
-            return repsInput && !repsInput.value;
-        });
-
         if (hasInvalidSets) {
             alert('Заполните поле "Повторения" во всех подходах!');
         } else {
@@ -364,4 +360,3 @@ function clearWorkoutForm() {
     // Сбрасываем флаг редактирования
     delete document.getElementById('workout-form').dataset.editing;
 }
-

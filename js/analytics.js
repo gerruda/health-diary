@@ -1,4 +1,3 @@
-// analytics.js (обновленный)
 import { getHealthData, getWorkoutHistory, getExerciseMetrics, saveExerciseMetrics } from './storage.js';
 
 export function initAnalytics() {
@@ -6,7 +5,7 @@ export function initAnalytics() {
     initSleepChart();
     initEnergyChart();
     populateExerciseFilter();
-    updateMetricHints(); // Инициализация подсказок
+    updateMetricHints();
     initExerciseChart();
 
     const metrics = getExerciseMetrics();
@@ -24,7 +23,7 @@ export function initAnalytics() {
                 exerciseChart.destroy();
             }
             initExerciseChart();
-            updateMetricHints(); // Обновляем подсказки
+            updateMetricHints();
         });
     });
 }
@@ -46,9 +45,7 @@ function updateMetricHints() {
 
 // Обновленная функция prepareExerciseData
 function prepareExerciseData(exerciseName) {
-    console.log(`[DEBUG] Подготовка данных для: "${exerciseName}"`);
     const workoutHistory = getWorkoutHistory();
-    console.log('[DEBUG] История тренировок:', workoutHistory);
     const metricType = getExerciseMetrics().selectedMetric || 'orm';
     const result = [];
 
@@ -59,8 +56,6 @@ function prepareExerciseData(exerciseName) {
                 exercise.name.trim().toLowerCase() === exerciseName.trim().toLowerCase();
 
             if (isNameMatch && exercise.sets && exercise.sets.length > 0) {
-                console.log(`[DEBUG] Найдено упражнение: ${exercise.name} (${date})`);
-
                 let metricValue = 0;
                 let hasValidSet = false;
 
@@ -86,9 +81,9 @@ function prepareExerciseData(exerciseName) {
                                 if (effectiveWeight > 0) {
                                     const oneRepMax = calculateOneRepMax(effectiveWeight, reps);
                                     if (oneRepMax > metricValue) metricValue = oneRepMax;
-                                } else if (reps > metricValue) {
+                                } else {
                                     // Для упражнений без веса используем количество повторений
-                                    metricValue = reps;
+                                    if (reps > metricValue) metricValue = reps;
                                 }
                                 break;
                         }
@@ -96,7 +91,6 @@ function prepareExerciseData(exerciseName) {
                 });
 
                 if (hasValidSet) {
-                    console.log(`[DEBUG] Добавлена запись: ${date} - ${metricValue}`);
                     result.push({
                         date: date,
                         value: metricValue,
@@ -109,7 +103,6 @@ function prepareExerciseData(exerciseName) {
 
     // Сортируем по дате
     result.sort((a, b) => a.date.localeCompare(b.date));
-    console.log(`[DEBUG] Итоговые данные:`, result);
 
     return {
         dates: result.map(item => item.date),
@@ -263,7 +256,6 @@ function initWeightChart() {
 
     // Проверяем достаточно ли точек для построения графика
     if (data.weights.length < 2) {
-        console.log("Недостаточно данных для построения графика веса. Найдено точек:", data.weights.length);
         return;
     }
 
@@ -377,12 +369,11 @@ function prepareWeightData() {
     // Находим минимальный вес
     for (const date in healthData) {
         healthData[date].forEach(entry => {
-            // Используем новую структуру данных weighings
             if (entry.weighings) {
                 entry.weighings.forEach(weighing => {
                     const weightVal = parseFloat(weighing.weight);
-                    if (!isNaN(weightVal) && weightVal < minWeight) {
-                        minWeight = weightVal;
+                    if (!isNaN(weightVal)) {
+                        minWeight = Math.min(minWeight, weightVal);
                     }
                 });
             }
@@ -400,7 +391,6 @@ function prepareWeightData() {
         let weightCount = 0;
 
         healthData[date].forEach(entry => {
-            // Обрабатываем взвешивания
             if (entry.weighings) {
                 entry.weighings.forEach(weighing => {
                     const weightVal = parseFloat(weighing.weight);
@@ -411,18 +401,15 @@ function prepareWeightData() {
                 });
             }
 
-            // Проверяем тренировки
             if (entry.workout && entry.workout !== 'none') {
                 hasWorkout = true;
             }
 
-            // Проверяем алкоголь
             if (entry.alcohol && entry.alcohol.trim() !== '' && entry.alcohol !== 'no') {
                 hasAlcohol = true;
             }
         });
 
-        // Рассчитываем средний вес за день
         if (weightCount > 0) {
             const avgWeight = weightSum / weightCount;
             weightEntry = {
@@ -462,7 +449,6 @@ function initSleepChart() {
 
     // Проверяем достаточно ли точек для построения графика
     if (data.dates.length < 2) {
-        console.log("Недостаточно данных для построения графика сна. Найдено точек:", data.dates.length);
         return;
     }
 
@@ -585,7 +571,6 @@ function initEnergyChart() {
 
     // Проверяем достаточно ли точек для построения графика
     if (data.dates.length < 2) {
-        console.log("Недостаточно данных для построения графика энергии. Найдено точек:", data.dates.length);
         return;
     }
 
@@ -739,7 +724,6 @@ function calculateOneRepMax(weight, reps) {
 function populateExerciseFilter() {
     const filter = document.getElementById('exercise-filter');
     if (!filter) {
-        console.error('Элемент exercise-filter не найден');
         return;
     }
 
@@ -754,7 +738,6 @@ function populateExerciseFilter() {
         workoutHistory[date].forEach(exercise => {
             if (exercise.name && exercise.name.trim() !== '') {
                 exercises.add(exercise.name);
-                console.log(`[DEBUG] Добавлено упражнение: ${exercise.name}`);
             }
         });
     }
@@ -768,15 +751,8 @@ function populateExerciseFilter() {
         filter.appendChild(option);
     });
 
-    // Автоматически выбираем первое упражнение, если есть
-    if (sortedExercises.length > 0) {
-        filter.value = sortedExercises[0];
-        console.log(`[DEBUG] Автовыбор упражнения: ${sortedExercises[0]}`);
-    }
-
     // Обработчик изменения
     filter.addEventListener('change', () => {
-        console.log(`[DEBUG] Выбрано упражнение: ${filter.value}`);
         if (exerciseChart) exerciseChart.destroy();
         initExerciseChart();
     });
