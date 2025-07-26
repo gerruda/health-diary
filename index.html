@@ -183,21 +183,27 @@
                 <table id="sets-table">
                     <thead>
                     <tr>
-                        <th>Вес (кг)</th>
-                        <th>Повторения</th>
+                        <th>Подходы</th>
+                        <th></th>
                         <th></th>
                     </tr>
                     </thead>
                     <tbody id="sets-body">
                     <tr>
-                    <td><input type="number" class="set-weight" step="0.1" min="0"></td>
-                    <td><input type="number" class="set-reps" min="1"></td>
-                    <td>
-                        <label class="per-limb-label">
-                            <input type="checkbox" class="set-per-limb"}>
-                            На каждую конечность
-                        </label>
-                    </td>
+                        <td class="set-inputs">
+                            <input type="number" class="set-weight" step="0.1" min="0" placeholder="Вес (кг)">
+                            <input type="number" class="set-reps" min="1" placeholder="Повторения">
+                        </td>
+                        <td class="per-limb-cell">
+                            <label class="per-limb-label">
+                                <input type="checkbox" class="set-per-limb">
+                                На каждую конечность
+                            </label>
+                        </td>
+                        <td class="remove-cell">
+                            <button type="button" class="btn-remove-set"><i class="fas fa-times"></i></button>
+                        </td>
+                    </tr>
                     </tbody>
                 </table>
                 <button type="button" id="add-set" class="btn-add">
@@ -241,14 +247,14 @@
             <label>
                 <input type="radio" name="exercise-metric" value="max-reps"> Макс. повторения
             </label>
-        </div>
-        <div class="chart-container">
             <div class="metric-hints">
                 <div data-metric="orm">1ПМ - максимальный вес, который вы можете поднять один раз</div>
                 <div data-metric="volume">Общий объём = вес × повторения (учитывает все подходы)</div>
                 <div data-metric="reps">Общее количество повторений за все подходы</div>
                 <div data-metric="max-reps">Максимальное количество повторений в одном подходе</div>
             </div>
+        </div>
+        <div class="chart-container">
             <h3>Прогресс в упражнениях (1ПМ)</h3>
             <div class="exercise-controls">
                 <select id="exercise-filter" class="form-control">

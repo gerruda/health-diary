@@ -1,26 +1,258 @@
-import {getExerciseMetrics, getHealthData, getWorkoutHistory, saveExerciseMetrics} from './storage.js';
+// analytics.js (обновленный)
+import { getHealthData, getWorkoutHistory, getExerciseMetrics, saveExerciseMetrics } from './storage.js';
 
 export function initAnalytics() {
-    const metrics = getExerciseMetrics();
-    document.querySelector(`input[name="exercise-metric"][value="${metrics.selectedMetric}"]`).checked = true;
-
     initWeightChart();
     initSleepChart();
     initEnergyChart();
     populateExerciseFilter();
+    updateMetricHints(); // Инициализация подсказок
     initExerciseChart();
+
+    const metrics = getExerciseMetrics();
+    const metricRadio = document.querySelector(`input[name="exercise-metric"][value="${metrics.selectedMetric}"]`);
+    if (metricRadio) {
+        metricRadio.checked = true;
+    }
 
     // Обработчики для переключателей метрик
     document.querySelectorAll('input[name="exercise-metric"]').forEach(radio => {
         radio.addEventListener('change', () => {
-            saveExerciseMetrics({ selectedMetric: radio.value });
-
+            const metric = radio.value;
+            saveExerciseMetrics({ selectedMetric: metric });
             if (exerciseChart) {
                 exerciseChart.destroy();
             }
             initExerciseChart();
+            updateMetricHints(); // Обновляем подсказки
         });
     });
+}
+
+// Новая функция для обновления подсказок
+function updateMetricHints() {
+    const selectedMetric = document.querySelector('input[name="exercise-metric"]:checked')?.value || 'orm';
+    const hints = document.querySelectorAll('.metric-hints > div');
+
+    hints.forEach(hint => {
+        hint.style.display = 'none';
+    });
+
+    const activeHint = document.querySelector(`.metric-hints > div[data-metric="${selectedMetric}"]`);
+    if (activeHint) {
+        activeHint.style.display = 'block';
+    }
+}
+
+// Обновленная функция prepareExerciseData
+function prepareExerciseData(exerciseName) {
+    console.log(`[DEBUG] Подготовка данных для: "${exerciseName}"`);
+    const workoutHistory = getWorkoutHistory();
+    console.log('[DEBUG] История тренировок:', workoutHistory);
+    const metricType = getExerciseMetrics().selectedMetric || 'orm';
+    const result = [];
+
+    for (const date in workoutHistory) {
+        workoutHistory[date].forEach(exercise => {
+            // Проверяем совпадение названия упражнения
+            const isNameMatch = exercise.name &&
+                exercise.name.trim().toLowerCase() === exerciseName.trim().toLowerCase();
+
+            if (isNameMatch && exercise.sets && exercise.sets.length > 0) {
+                console.log(`[DEBUG] Найдено упражнение: ${exercise.name} (${date})`);
+
+                let metricValue = 0;
+                let hasValidSet = false;
+
+                exercise.sets.forEach(set => {
+                    const reps = parseInt(set.reps);
+
+                    if (!isNaN(reps) && reps > 0) {
+                        hasValidSet = true;
+                        const weight = parseFloat(set.weight) || 0;
+                        const effectiveWeight = set.perLimb ? weight * 2 : weight;
+
+                        switch (metricType) {
+                            case 'volume': // Общий объем
+                                metricValue += effectiveWeight * reps;
+                                break;
+                            case 'reps': // Суммарные повторения
+                                metricValue += reps;
+                                break;
+                            case 'max-reps': // Максимальные повторения
+                                if (reps > metricValue) metricValue = reps;
+                                break;
+                            case 'orm': // 1ПМ
+                                if (effectiveWeight > 0) {
+                                    const oneRepMax = calculateOneRepMax(effectiveWeight, reps);
+                                    if (oneRepMax > metricValue) metricValue = oneRepMax;
+                                } else if (reps > metricValue) {
+                                    // Для упражнений без веса используем количество повторений
+                                    metricValue = reps;
+                                }
+                                break;
+                        }
+                    }
+                });
+
+                if (hasValidSet) {
+                    console.log(`[DEBUG] Добавлена запись: ${date} - ${metricValue}`);
+                    result.push({
+                        date: date,
+                        value: metricValue,
+                        note: ''
+                    });
+                }
+            }
+        });
+    }
+
+    // Сортируем по дате
+    result.sort((a, b) => a.date.localeCompare(b.date));
+    console.log(`[DEBUG] Итоговые данные:`, result);
+
+    return {
+        dates: result.map(item => item.date),
+        values: result.map(item => item.value),
+        notes: result.map(item => item.note)
+    };
+}
+
+// Обновленная функция initExerciseChart
+function initExerciseChart() {
+    const ctx = document.getElementById('exercise-chart');
+    if (!ctx) return;
+
+    const filter = document.getElementById('exercise-filter');
+    if (!filter) return;
+
+    const exerciseName = filter.value;
+    const metricType = getExerciseMetrics().selectedMetric || 'orm';
+
+    // Очищаем предыдущий график
+    if (exerciseChart) {
+        exerciseChart.destroy();
+        exerciseChart = null;
+    }
+
+    // Если упражнение не выбрано, выходим
+    if (!exerciseName) {
+        ctx.style.display = 'none';
+        return;
+    }
+
+    // Получаем данные для графика
+    const data = prepareExerciseData(exerciseName);
+
+    // Проверяем наличие данных
+    if (data.dates.length < 1) {
+        ctx.style.display = 'none';
+        return;
+    }
+
+    const theme = document.documentElement.getAttribute('data-theme') || 'light';
+    const gridColor = theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+    const bgColor = theme === 'dark' ? 'rgba(255, 99, 132, 0.2)' : 'rgba(255, 99, 132, 0.1)';
+
+    // Форматируем даты для меток
+    const formatDate = (dateStr) => {
+        const parts = dateStr.split('-');
+        if (parts.length === 3) {
+            return `${parts[2]}.${parts[1]}`;
+        }
+        return dateStr;
+    };
+
+    // Показываем canvas
+    ctx.style.display = 'block';
+
+    // Создаем график
+    exerciseChart = new Chart(ctx.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: data.dates.map(formatDate),
+            datasets: [{
+                label: getMetricLabel(metricType, exerciseName),
+                data: data.values,
+                borderColor: '#ff6384',
+                backgroundColor: bgColor,
+                borderWidth: 2,
+                tension: 0.3,
+                fill: true,
+                pointRadius: 6,
+                pointHoverRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Дата'
+                    },
+                    grid: {
+                        color: gridColor
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: getMetricYLabel(metricType)
+                    },
+                    grid: {
+                        color: gridColor
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        font: {
+                            size: 14
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        title: (items) => {
+                            return data.dates[items[0].dataIndex];
+                        },
+                        label: (context) => {
+                            return `${getMetricLabel(metricType, '')}: ${context.raw}`;
+                        },
+                        footer: (tooltipItems) => {
+                            const index = tooltipItems[0].dataIndex;
+                            return data.notes[index] || '';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Вспомогательные функции для метрик
+function getMetricLabel(metricType, exerciseName) {
+    const labels = {
+        'orm': `1ПМ ${exerciseName}`,
+        'volume': `Общий объём ${exerciseName}`,
+        'reps': `Повторения ${exerciseName}`,
+        'max-reps': `Макс. повторения ${exerciseName}`
+    };
+    return labels[metricType] || exerciseName;
+}
+
+function getMetricYLabel(metricType) {
+    const labels = {
+        'orm': '1ПМ (кг)',
+        'volume': 'Объём (кг×повт)',
+        'reps': 'Количество повторений',
+        'max-reps': 'Макс. повторения'
+    };
+    return labels[metricType] || 'Значение';
 }
 
 function initWeightChart() {
@@ -491,201 +723,6 @@ function prepareEnergyData() {
 
 let exerciseChart = null;
 
-function initExerciseChart() {
-    const ctx = document.getElementById('exercise-chart');
-    if (!ctx) return;
-
-    const filter = document.getElementById('exercise-filter');
-    if (!filter) return;
-
-    const exerciseName = filter.value;
-
-    // Очищаем предыдущий график
-    if (exerciseChart) {
-        exerciseChart.destroy();
-        exerciseChart = null;
-    }
-
-    // Если упражнение не выбрано, выходим
-    if (!exerciseName) {
-        ctx.style.display = 'none';
-        return;
-    }
-
-    // Определяем тип метрики
-    const metricType = document.querySelector('input[name="exercise-metric"]:checked')?.value || 'orm';
-
-    // Получаем данные для графика
-    const data = prepareExerciseData(exerciseName, metricType);
-
-    // Проверяем наличие данных
-    if (data.dates.length < 2) {
-        console.log("Недостаточно данных для построения графика упражнений. Найдено точек:", data.dates.length);
-        ctx.style.display = 'none';
-        return;
-    }
-
-    const theme = document.documentElement.getAttribute('data-theme') || 'light';
-    const gridColor = theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
-    const bgColor = theme === 'dark' ? 'rgba(255, 99, 132, 0.2)' : 'rgba(255, 99, 132, 0.1)';
-
-    // Форматируем даты для меток
-    const formatDate = (dateStr) => {
-        const parts = dateStr.split('-');
-        if (parts.length === 3) {
-            return `${parts[2]}.${parts[1]}`;
-        }
-        return dateStr;
-    };
-
-    // Показываем canvas
-    ctx.style.display = 'block';
-
-    // Создаем график
-    exerciseChart = new Chart(ctx.getContext('2d'), {
-        type: 'line',
-        data: {
-            labels: data.dates.map(formatDate),
-            datasets: [{
-                label: getMetricLabel(metricType, exerciseName),
-                data: data.values,
-                borderColor: '#ff6384',
-                backgroundColor: bgColor,
-                borderWidth: 2,
-                tension: 0.3,
-                fill: true,
-                pointRadius: 6,
-                pointHoverRadius: 8
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Дата'
-                    },
-                    grid: {
-                        color: gridColor
-                    }
-                },
-                y: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: getMetricYLabel(metricType)
-                    },
-                    grid: {
-                        color: gridColor
-                    }
-                }
-            },
-            plugins: {
-                legend: {
-                    position: 'top',
-                    labels: {
-                        font: {
-                            size: 14
-                        }
-                    }
-                },
-                tooltip: {
-                    callbacks: {
-                        title: (items) => {
-                            return data.dates[items[0].dataIndex];
-                        },
-                        label: (context) => {
-                            return `1ПМ: ${context.raw} кг`;
-                        },
-                        footer: (tooltipItems) => {
-                            const index = tooltipItems[0].dataIndex;
-                            return data.notes[index] || '';
-                        }
-                    }
-                }
-            }
-        }
-    });
-}
-
-function getMetricYLabel(metricType) {
-    const labels = {
-        'orm': '1ПМ (кг)',
-        'volume': 'Объём (кг×повт)',
-        'reps': 'Количество повторений',
-        'max-reps': 'Макс. повторения'
-    };
-    return labels[metricType] || 'Значение';
-}
-
-// Обновим prepareExerciseData
-function prepareExerciseData(exerciseName, metricType = 'orm') {
-    const workoutHistory = getWorkoutHistory();
-    const result = [];
-
-    for (const date in workoutHistory) {
-        workoutHistory[date].forEach(exercise => {
-            if (exercise.name && exercise.name.trim().toLowerCase() === exerciseName.trim().toLowerCase() &&
-                exercise.sets && exercise.sets.length > 0) {
-
-                let metricValue = 0;
-                let hasValidSet = false;
-
-                exercise.sets.forEach(set => {
-                    if (set.reps) {
-                        let weight = parseFloat(set.weight) || 0;
-                        const reps = parseInt(set.reps);
-
-                        // Если вес 0 и указано "на каждую конечность" - считаем как 0
-                        const effectiveWeight = set.perLimb ? weight * 2 : weight;
-
-                        if (!isNaN(reps) && reps > 0) {
-                            hasValidSet = true;
-
-                            switch (metricType) {
-                                case 'volume': // Общий объем
-                                    metricValue += effectiveWeight * reps;
-                                    break;
-                                case 'reps': // Суммарные повторения
-                                    metricValue += reps;
-                                    break;
-                                case 'max-reps': // Максимальные повторения
-                                    if (reps > metricValue) metricValue = reps;
-                                    break;
-                                case 'orm': // 1ПМ
-                                default:
-                                    if (effectiveWeight > 0) {
-                                        const oneRepMax = calculateOneRepMax(effectiveWeight, reps);
-                                        if (oneRepMax > metricValue) metricValue = oneRepMax;
-                                    }
-                                    break;
-                            }
-                        }
-                    }
-                });
-
-                if (hasValidSet) {
-                    result.push({
-                        date: date,
-                        value: metricValue,
-                        note: ''
-                    });
-                }
-            }
-        });
-    }
-
-    // Сортируем по дате
-    result.sort((a, b) => a.date.localeCompare(b.date));
-
-    return {
-        dates: result.map(item => item.date),
-        values: result.map(item => item.value),
-        notes: result.map(item => item.note)
-    };
-}
-
 // Функция расчета одноповторного максимума
 function calculateOneRepMax(weight, reps) {
     if (weight <= 0 || reps <= 0) return 0;
@@ -698,6 +735,7 @@ function calculateOneRepMax(weight, reps) {
     return Math.round(oneRepMax * 10) / 10; // Округляем до 0.1
 }
 
+// Обновленная функция populateExerciseFilter
 function populateExerciseFilter() {
     const filter = document.getElementById('exercise-filter');
     if (!filter) {
@@ -705,24 +743,24 @@ function populateExerciseFilter() {
         return;
     }
 
+    // Очищаем существующие опции
     filter.innerHTML = '<option value="">Выберите упражнение</option>';
 
     const workoutHistory = getWorkoutHistory();
     const exercises = new Set();
 
+    // Собираем уникальные упражнения
     for (const date in workoutHistory) {
         workoutHistory[date].forEach(exercise => {
-            // Фильтрация пустых названий
             if (exercise.name && exercise.name.trim() !== '') {
                 exercises.add(exercise.name);
+                console.log(`[DEBUG] Добавлено упражнение: ${exercise.name}`);
             }
         });
     }
 
-    // Сортируем упражнения по алфавиту
+    // Сортируем и добавляем в список
     const sortedExercises = Array.from(exercises).sort();
-
-    // Добавляем упражнения в выпадающий список
     sortedExercises.forEach(exercise => {
         const option = document.createElement('option');
         option.value = exercise;
@@ -730,6 +768,16 @@ function populateExerciseFilter() {
         filter.appendChild(option);
     });
 
-    // Добавляем обработчик изменения выбора
-    filter.addEventListener('change', initExerciseChart);
+    // Автоматически выбираем первое упражнение, если есть
+    if (sortedExercises.length > 0) {
+        filter.value = sortedExercises[0];
+        console.log(`[DEBUG] Автовыбор упражнения: ${sortedExercises[0]}`);
+    }
+
+    // Обработчик изменения
+    filter.addEventListener('change', () => {
+        console.log(`[DEBUG] Выбрано упражнение: ${filter.value}`);
+        if (exerciseChart) exerciseChart.destroy();
+        initExerciseChart();
+    });
 }

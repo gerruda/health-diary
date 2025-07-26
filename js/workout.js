@@ -141,16 +141,22 @@ export function populateWorkoutForm(exercise) {
         exercise.sets.forEach((set) => {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td><input type="number" class="set-weight" step="0.1" min="0" value="${set.weight || ''}"></td>
-                <td><input type="number" class="set-reps" min="1" value="${set.reps || ''}"></td>
-                <td>
-                    <label class="per-limb-label">
-                        <input type="checkbox" class="set-per-limb" ${set.perLimb ? 'checked' : ''}>
-                        На каждую конечность
-                    </label>
-                </td>
-                <td><button type="button" class="btn-remove-set"><i class="fas fa-times"></i></button></td>
-            `;
+        <td class="set-inputs">
+            <input type="number" class="set-weight" step="0.1" min="0" 
+                   value="${set.weight || ''}" placeholder="Вес (кг)">
+            <input type="number" class="set-reps" min="1" 
+                   value="${set.reps || ''}" placeholder="Повторения">
+        </td>
+        <td class="per-limb-cell">
+            <label class="per-limb-label">
+                <input type="checkbox" class="set-per-limb" ${set.perLimb ? 'checked' : ''}>
+                На каждую конечность
+            </label>
+        </td>
+        <td class="remove-cell">
+            <button type="button" class="btn-remove-set"><i class="fas fa-times"></i></button>
+        </td>
+    `;
             setsContainer.appendChild(row);
         });
     }
@@ -199,16 +205,21 @@ function addSetRow() {
 
     const row = document.createElement('tr');
     row.innerHTML = `
-        <td><input type="number" class="set-weight" step="0.1" min="0" value="${lastWeight}" 
-                    oninput="validateWeightInput(this)"></td>
-        <td><input type="number" class="set-reps" min="1" value="${lastReps}"></td>
-        <div>
-        <td>
+        <td class="set-inputs">
+            <input type="number" class="set-weight" step="0.1" min="0" 
+                   value="${lastWeight}" placeholder="Вес (кг)">
+            <input type="number" class="set-reps" min="1" 
+                   value="${lastReps}" placeholder="Повторения">
+        </td>
+        <td class="per-limb-cell">
+            <label class="per-limb-label">
                 <input type="checkbox" class="set-per-limb" ${lastPerLimb ? 'checked' : ''}>
                 На каждую конечность
+            </label>
         </td>
-        </div>
-        <td><button type="button" class="btn-remove-set"><i class="fas fa-times"></i></button></td>
+        <td class="remove-cell">
+            <button type="button" class="btn-remove-set"><i class="fas fa-times"></i></button>
+        </td>
     `;
     tbody.appendChild(row);
 
@@ -240,10 +251,12 @@ function saveWorkout(e) {
         const repsInput = row.querySelector('.set-reps');
         const perLimbCheckbox = row.querySelector('.set-per-limb');
 
-        // Пропускаем подходы с нулевым весом
-        if (weightInput && repsInput && weightInput.value && repsInput.value && weightInput.value > 0) {
+        // Разрешаем вес 0 для упражнений без дополнительного веса
+        if (weightInput && repsInput && repsInput.value) {
+            const weightValue = parseFloat(weightInput.value) || 0;
+
             setsData.push({
-                weight: parseFloat(weightInput.value),
+                weight: weightValue,
                 reps: parseInt(repsInput.value),
                 perLimb: perLimbCheckbox ? perLimbCheckbox.checked : false
             });
@@ -251,21 +264,16 @@ function saveWorkout(e) {
     });
 
     if (setsData.length === 0) {
-        const hasZeroWeightSets = Array.from(setRows).some(row => {
-            const weightInput = row.querySelector('.set-weight');
-            return weightInput && weightInput.value === "0";
+        const hasInvalidSets = Array.from(setRows).some(row => {
+            const repsInput = row.querySelector('.set-reps');
+            return repsInput && !repsInput.value;
         });
 
-        if (hasZeroWeightSets) {
-            alert('Вес не может быть равен 0! Исправьте значения в подходах.');
+        if (hasInvalidSets) {
+            alert('Заполните поле "Повторения" во всех подходах!');
         } else {
-            alert('Добавьте хотя бы один подход с валидными данными!');
+            alert('Добавьте хотя бы один подход!');
         }
-        return;
-    }
-
-    if (setsData.length === 0) {
-        alert('Добавьте хотя бы один подход!');
         return;
     }
 
@@ -357,8 +365,3 @@ function clearWorkoutForm() {
     delete document.getElementById('workout-form').dataset.editing;
 }
 
-function validateWeightInput(input) {
-    if (input.value < 0) {
-        input.value = '';
-    }
-}

@@ -97,9 +97,8 @@ function cleanWorkoutHistory(history) {
             return {
                 ...exercise,
                 sets: exercise.sets.filter(set => {
-                    // Удаляем подходы с нулевым весом
                     const weight = parseFloat(set.weight);
-                    return !isNaN(weight) && weight > 0;
+                    return !isNaN(weight);
                 })
             };
         });
@@ -168,3 +167,4 @@ export function getExerciseMetrics() {
 export function saveExerciseMetrics(metrics) {
     localStorage.setItem('exerciseMetrics', JSON.stringify(metrics));
 }
+
