@@ -506,71 +506,35 @@ button:hover {
     padding: 8px;
 }
 
-.per-limb-cell {
-    padding-top: 0 !important;
-}
-
-.per-limb-label {
+.set-inputs {
     display: flex;
-    align-items: center;
-    font-size: 14px;
+    gap: 15px;
 }
 
-.remove-cell {
-    text-align: center;
-    width: 40px;
+.input-group {
+    display: flex;
+    flex-direction: column;
 }
 
-.btn-remove-set {
-    background: none;
-    border: none;
-    color: #ff6b6b;
-    cursor: pointer;
-    font-size: 16px;
-}
-
-/* Для мобильных устройств */
-@media (max-width: 768px) {
-    .set-inputs {
-        flex-direction: column;
-        gap: 5px;
-    }
-
-    .set-inputs input {
-        width: 100%;
-    }
-
-    #sets-table td {
-        padding: 5px;
-    }
+.input-group label {
+    font-size: 0.8em;
+    color: #666;
+    margin-bottom: 4px;
 }
 
 .per-limb-cell {
-    width: 40px;
+    width: 50px;
     text-align: center;
 }
 
 .per-limb-label {
     cursor: pointer;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    display: block;
 }
 
 .per-limb-icon {
-    font-size: 1.2em;
-    padding: 5px;
-    display: inline-block;
-}
-
-.set-inputs {
-    display: flex;
-    gap: 10px;
-}
-
-.set-inputs input {
-    flex: 1;
-    min-width: 80px;
+    font-size: 1.4em;
+    display: block;
 }
 
 .remove-cell {

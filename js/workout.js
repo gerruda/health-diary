@@ -138,22 +138,28 @@ export function populateWorkoutForm(exercise) {
         exercise.sets.forEach((set) => {
             const row = document.createElement('tr');
             row.innerHTML = `
-        <td class="set-inputs">
+    <td class="set-inputs">
+        <div class="input-group">
+            <label>Вес (кг)</label>
             <input type="number" class="set-weight" step="0.1" min="0" 
-                   value="${set.weight || ''}" placeholder="Вес (кг)">
+                   value="${set.weight || ''}">
+        </div>
+        <div class="input-group">
+            <label>Повторения</label>
             <input type="number" class="set-reps" min="1" 
-                   value="${set.reps || ''}" placeholder="Повторения">
-          </td>
-          <td class="per-limb-cell">
-            <label class="per-limb-label" title="На каждую конечность">
-              <input type="checkbox" class="set-per-limb" ${set.perLimb ? 'checked' : ''}>
-              <span class="per-limb-icon">⇆</span>
-            </label>
-          </td>
-          <td class="remove-cell">
-            <button type="button" class="btn-remove-set"><i class="fas fa-times"></i></button>
-          </td>
-    `;
+                   value="${set.reps || ''}">
+        </div>
+    </td>
+    <td class="per-limb-cell">
+        <label class="per-limb-label" title="На каждую конечность">
+            <input type="checkbox" class="set-per-limb" ${set.perLimb ? 'checked' : ''}>
+            <span class="per-limb-icon">⇆</span>
+        </label>
+    </td>
+    <td class="remove-cell">
+        <button type="button" class="btn-remove-set"><i class="fas fa-times"></i></button>
+    </td>
+`;
             setsContainer.appendChild(row);
         });
     }
@@ -202,21 +208,27 @@ function addSetRow() {
 
     const row = document.createElement('tr');
     row.innerHTML = `
-      <td class="set-inputs">
-        <input type="number" class="set-weight" step="0.1" min="0" 
-               value="${lastWeight}" placeholder="Вес (кг)">
-        <input type="number" class="set-reps" min="1" 
-               value="${lastReps}" placeholder="Повторения">
-      </td>
-      <td class="per-limb-cell">
+    <td class="set-inputs">
+        <div class="input-group">
+            <label>Вес (кг)</label>
+            <input type="number" class="set-weight" step="0.1" min="0" 
+                   value="${set.weight || ''}">
+        </div>
+        <div class="input-group">
+            <label>Повторения</label>
+            <input type="number" class="set-reps" min="1" 
+                   value="${set.reps || ''}">
+        </div>
+    </td>
+    <td class="per-limb-cell">
         <label class="per-limb-label" title="На каждую конечность">
-          <input type="checkbox" class="set-per-limb" ${lastPerLimb ? 'checked' : ''}>
-          <span class="per-limb-icon">⇆</span>
+            <input type="checkbox" class="set-per-limb" ${set.perLimb ? 'checked' : ''}>
+            <span class="per-limb-icon">⇆</span>
         </label>
-      </td>
-      <td class="remove-cell">
+    </td>
+    <td class="remove-cell">
         <button type="button" class="btn-remove-set"><i class="fas fa-times"></i></button>
-      </td>
+    </td>
 `;
     tbody.appendChild(row);
 

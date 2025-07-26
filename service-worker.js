@@ -26,10 +26,28 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('fetch', event => {
-    event.respondWith(
-        caches.match(event.request)
-            .then(response => response || fetch(event.request))
-    );
+    // Для API-запросов используем StaleWhileRevalidate
+    if (event.request.url.includes('/api/')) {
+        event.respondWith(
+            caches.open('api-cache').then(cache => {
+                return cache.match(event.request).then(response => {
+                    const fetchPromise = fetch(event.request).then(networkResponse => {
+                        cache.put(event.request, networkResponse.clone());
+                        return networkResponse;
+                    });
+                    return response || fetchPromise;
+                });
+            })
+        );
+    }
+    // Для статических ресурсов - CacheFirst
+    else {
+        event.respondWith(
+            caches.match(event.request).then(response => {
+                return response || fetch(event.request);
+            })
+        );
+    }
 });
 
 self.addEventListener('activate', event => {

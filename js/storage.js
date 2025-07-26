@@ -1,26 +1,3 @@
-// Получение данных
-export function getHealthData() {
-    const rawData = JSON.parse(localStorage.getItem('healthData')) || {};
-
-    // Миграция старых данных в новый формат
-    for (const date in rawData) {
-        rawData[date] = rawData[date].map(entry => {
-            if (entry.weight && !entry.weighings) {
-                return {
-                    ...entry,
-                    weighings: [{
-                        weight: entry.weight,
-                        condition: entry.weightCondition || ''
-                    }]
-                };
-            }
-            return entry;
-        });
-    }
-
-    return rawData;
-}
-
 export function getSettings() {
     return JSON.parse(localStorage.getItem('healthSettings')) || {
         reminderTime: '20:00',
@@ -74,12 +51,6 @@ export function saveWorkoutHistory(history) {
     localStorage.setItem('workoutHistory', JSON.stringify(cleanedHistory));
 }
 
-// Получение истории тренировок с расчетом 1ПМ
-export function getWorkoutHistory() {
-    const history = JSON.parse(localStorage.getItem('workoutHistory')) || {};
-    return cleanWorkoutHistory(history);
-}
-
 // Очистка истории тренировок
 function cleanWorkoutHistory(history) {
     const cleaned = {};
@@ -108,31 +79,46 @@ function cleanWorkoutHistory(history) {
 }
 
 export function migrateData() {
-    const healthData = JSON.parse(localStorage.getItem('healthData')) || {};
-    let needsMigration = false;
+    // Проверяем наличие старой структуры данных
+    const oldHealthData = localStorage.getItem('healthData');
+    const oldWorkoutData = localStorage.getItem('workoutHistory');
 
-    for (const date in healthData) {
-        healthData[date] = healthData[date].map(entry => {
-            if (entry.weight && !entry.weighings) {
-                needsMigration = true;
-                return {
-                    ...entry,
-                    weighings: [{
-                        weight: entry.weight,
-                        condition: entry.weightCondition || ''
-                    }],
-                    weight: undefined,
-                    weightCondition: undefined
-                };
+    if (oldHealthData) {
+        try {
+            const parsed = JSON.parse(oldHealthData);
+            // Преобразуем старые данные в новую структуру
+            const newData = {};
+            for (const date in parsed) {
+                newData[date] = [{
+                    time: "12:00",
+                    ...parsed[date]
+                }];
             }
-            return entry;
-        });
+            localStorage.setItem('healthData_v2', JSON.stringify(newData));
+            localStorage.removeItem('healthData');
+        } catch (e) {
+            console.error('Migration error:', e);
+        }
     }
 
-    if (needsMigration) {
-        localStorage.setItem('healthData', JSON.stringify(healthData));
-        console.log('Данные успешно мигрированы');
+    if (oldWorkoutData) {
+        try {
+            localStorage.setItem('workoutHistory_v2', oldWorkoutData);
+            localStorage.removeItem('workoutHistory');
+        } catch (e) {
+            console.error('Workout migration error:', e);
+        }
     }
+}
+
+export function getHealthData() {
+    const data = localStorage.getItem('healthData_v2');
+    return data ? JSON.parse(data) : {};
+}
+
+export function getWorkoutHistory() {
+    const data = localStorage.getItem('workoutHistory_v2');
+    return data ? JSON.parse(data) : {};
 }
 
 export function getFormDraft(date) {
