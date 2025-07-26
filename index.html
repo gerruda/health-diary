@@ -32,7 +32,7 @@
     <link rel="apple-touch-icon" href="icons/apple-icon-180x180.png">
 
     <!-- Manifest -->
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="manifest.webmanifest">
 
     <!-- Theme Color -->
     <meta name="theme-color" content="#4A90E2">
@@ -100,6 +100,7 @@
                     <button type="button" id="add-weight" class="btn-add">
                         <i class="fas fa-plus"></i> Добавить взвешивание
                     </button>
+                    <datalist id="condition-list"></datalist>
                 </div>
 
                 <div class="form-group">
@@ -273,7 +274,7 @@
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
             try {
-                const reg = await navigator.serviceWorker.register('/service-worker.js');
+                const reg = await navigator.serviceWorker.register('/js/service-worker.js');
                 console.log('ServiceWorker registered:', reg);
             } catch (err) {
                 console.error('SW registration failed:', err);

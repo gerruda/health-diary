@@ -11,13 +11,13 @@ self.addEventListener('activate', event => {
 // Простая стратегия кэширования
 const CACHE_NAME = 'health-diary-v1';
 const urlsToCache = [
-    '/health-diary/',
-    '/health-diary/index.html',
-    '/health-diary/manifest.json',
-    '/health-diary/icons/android-icon-192x192.png',
-    '/health-diary/icons/android-icon-512x512.png',
-    '/health-diary/favicon.ico',
-    '/health-diary/style.css',
+    '/',
+    '/index.html',
+    '/manifest.webmanifest',
+    '/icons/android-icon-192x192.png',
+    '/icons/android-icon-512x512.png',
+    '/favicon.ico',
+    '/style.css',
 ];
 
 self.addEventListener('install', event => {

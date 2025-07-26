@@ -29,13 +29,18 @@ export function getSettings() {
 }
 
 export function getWeightConditions() {
-    return JSON.parse(localStorage.getItem('weightConditions')) || [
-        'Утром натощак',
-        'Вечером перед сном',
-        'После тренировки',
-        'До еды',
-        'После еды'
-    ];
+    let conditions = JSON.parse(localStorage.getItem('weightConditions'));
+
+    if (!conditions || conditions.length === 0) {
+        conditions = [
+            'Утром натощак',
+            'Вечером перед сном',
+            'После тренировки',
+        ];
+        saveWeightConditions(conditions);
+    }
+
+    return conditions;
 }
 
 export function getExercisesList() {

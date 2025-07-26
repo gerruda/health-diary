@@ -4,7 +4,7 @@ import {
     saveWorkoutHistory,
     saveExercisesList
 } from './storage.js';
-import {loadHistoryData} from "./history.js";
+import { loadHistoryData } from "./history.js";
 
 let setCount = 0;
 

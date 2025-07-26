@@ -652,7 +652,7 @@ function calculateOneRepMax(weight, reps) {
 }
 
 function populateExerciseFilter() {
-    const filter = document.getElementById('exercise-filter');
+    const filter = document.getElementById('exercisesList');
     if (!filter) return;
 
     // Очищаем существующие опции
