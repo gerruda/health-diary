@@ -4,7 +4,7 @@ const BASE_PATH = '/health-diary/'; // Учитываем поддиректор
 const urlsToCache = [
     BASE_PATH,
     BASE_PATH + 'index.html',
-    BASE_PATH + 'manifest.json',
+    BASE_PATH + 'manifest.webmanifetst',
     BASE_PATH + 'styles.css',
     BASE_PATH + 'js/main.js',
     BASE_PATH + 'js/daily-tracker.js',
@@ -23,7 +23,16 @@ const urlsToCache = [
 self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(CACHE_NAME)
-            .then(cache => cache.addAll(urlsToCache))
+            .then(cache => {
+                // Кэшируем основные файлы, игнорируя ошибки для остальных
+                const cachePromises = urlsToCache.map(url => {
+                    return cache.add(url).catch(error => {
+                        console.log(`Failed to cache ${url}:`, error);
+                        return Promise.resolve();
+                    });
+                });
+                return Promise.all(cachePromises);
+            })
     );
 });
 
@@ -49,10 +58,11 @@ self.addEventListener('fetch', event => {
                 // Возвращаем кэш или сетевой запрос
                 return response || fetch(event.request)
                     .catch(() => {
-                        // Возвращаем fallback для основных страниц
+                        // Fallback для основных страниц
                         if (event.request.mode === 'navigate') {
                             return caches.match(BASE_PATH + 'index.html');
                         }
+                        return new Response('Offline', { status: 503 });
                     });
             })
     );
@@ -72,3 +82,5 @@ self.addEventListener('activate', event => {
         })
     );
 });
+
+console.log('Service Worker loaded');
