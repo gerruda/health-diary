@@ -4,8 +4,8 @@ const BASE_PATH = '/health-diary/'; // Учитываем поддиректор
 const urlsToCache = [
     BASE_PATH,
     BASE_PATH + 'index.html',
-    BASE_PATH + 'manifest.webmanifetst',
-    BASE_PATH + 'styles.css',
+    BASE_PATH + 'manifest.webmanifest',
+    BASE_PATH + 'style.css',
     BASE_PATH + 'js/main.js',
     BASE_PATH + 'js/daily-tracker.js',
     BASE_PATH + 'js/workout.js',
@@ -16,8 +16,8 @@ const urlsToCache = [
     BASE_PATH + 'js/export.js',
     BASE_PATH + 'js/theme.js',
     BASE_PATH + 'js/utils.js',
-    BASE_PATH + 'icons/icon-192x192.png',
-    BASE_PATH + 'icons/icon-512x512.png'
+    BASE_PATH + 'icons/android-icon-192x192.png',
+    BASE_PATH + 'icons/android-icon-512x512.png'
 ];
 
 self.addEventListener('install', event => {
