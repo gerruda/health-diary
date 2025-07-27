@@ -540,3 +540,125 @@ button:hover {
 .remove-cell {
     width: 40px;
 }
+
+/* Адаптивные стили для подходов */
+.approach-row {
+    display: block;
+    margin-bottom: 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.set-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+        "weight reps"
+        "limb limb";
+    gap: 10px;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.input-group.weight {
+    grid-area: weight;
+}
+
+.input-group.reps {
+    grid-area: reps;
+}
+
+.per-limb-cell {
+    grid-area: limb;
+    display: flex;
+    align-items: center;
+    margin-top: 5px;
+}
+
+.remove-cell {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+}
+
+.per-limb-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.per-limb-text {
+    margin-left: 5px;
+    margin-right: 5px;
+}
+
+.per-limb-icon {
+    font-weight: bold;
+}
+
+.btn-remove-set {
+    background: none;
+    border: none;
+    color: #ff6b6b;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 5px;
+}
+
+/* Мобильная адаптация */
+@media (max-width: 480px) {
+    .set-inputs {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+            "weight"
+            "reps"
+            "limb";
+    }
+
+    .input-group label {
+        font-size: 14px;
+        margin-bottom: 3px;
+    }
+
+    .input-group input {
+        padding: 8px;
+        font-size: 14px;
+    }
+
+    .per-limb-cell {
+        margin-top: 10px;
+        padding-top: 5px;
+        border-top: 1px solid #eee;
+    }
+}
+
+/* Десктопная версия */
+@media (min-width: 768px) {
+    .set-inputs {
+        grid-template-columns: 1fr 1fr auto auto;
+        grid-template-areas: "weight reps limb remove";
+        align-items: center;
+    }
+
+    .per-limb-cell {
+        margin-top: 0;
+        padding-left: 10px;
+        border-left: 1px solid #eee;
+    }
+
+    .remove-cell {
+        position: relative;
+        top: auto;
+        right: auto;
+        padding-left: 10px;
+    }
+
+    .per-limb-text {
+        display: none;
+    }
+}
