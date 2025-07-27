@@ -1,3 +1,4 @@
+import DataManager from './data-manager.js';
 import { initDailyTracker } from './daily-tracker.js';
 import { initWorkoutTracker } from './workout.js';
 import { initHistory } from './history.js';
@@ -8,51 +9,73 @@ import { initTabs } from './utils.js';
 import { cleanupExercisesList, cleanupWorkoutHistory, migrateData } from "./storage.js";
 import { initTheme } from './theme.js';
 
-// Форматирование даты (вынесем позже в utils.js)
 function formatDate(date, options) {
     return date.toLocaleDateString('ru-RU', options);
 }
 
-
 document.addEventListener('DOMContentLoaded', () => {
-    // Сначала инициализация вкладок
+    // Инициализация DataManager
+    const dataManager = new DataManager();
+
     initTabs();
     migrateData();
     cleanupWorkoutHistory();
     cleanupExercisesList();
 
+    // Регистрация Service Worker
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('service-worker.js').then(reg => {
-            reg.update(); // Принудительное обновление
-        });
+        const registerSW = async () => {
+            try {
+                // Определяем базовый путь для GitHub Pages
+                const basePath = location.pathname.includes('health-diary')
+                    ? '/health-diary/'
+                    : '/';
+
+                const registration = await navigator.serviceWorker.register(
+                    `${basePath}service-worker.js`,
+                    { scope: basePath }
+                );
+
+                console.log('[SW] Зарегистрирован:', registration);
+
+                // Принудительно обновляем Service Worker при первой загрузке
+                if (!navigator.serviceWorker.controller) {
+                    await registration.update();
+                }
+            } catch (error) {
+                console.error('[SW] Ошибка регистрации:', error);
+            }
+        };
+
+        window.addEventListener('load', registerSW);
     }
 
-    // Затем инициализация всех модулей с проверкой
     try {
         initTheme();
     } catch (e) {
         console.error('Ошибка инициализации темы:', e);
     }
+
     try {
-        initDailyTracker();
+        initDailyTracker(dataManager);
     } catch (e) {
         console.error('Ошибка инициализации ежедневного трекера:', e);
     }
 
     try {
-        initWorkoutTracker();
+        initWorkoutTracker(dataManager); // Также передаем в трекер тренировок
     } catch (e) {
         console.error('Ошибка инициализации трекера тренировок:', e);
     }
 
     try {
-        initHistory();
+        initHistory(dataManager);
     } catch (e) {
         console.error('Ошибка инициализации истории:', e);
     }
 
     try {
-        initAnalytics();
+        initAnalytics(dataManager); // И в аналитику
     } catch (e) {
         console.error('Ошибка инициализации аналитики:', e);
     }
@@ -64,12 +87,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-        initExport();
+        initExport(dataManager); // И в экспорт
     } catch (e) {
         console.error('Ошибка инициализации экспорта:', e);
     }
 
-    // Установка текущей даты
     try {
         const today = new Date();
         const currentDateElement = document.getElementById('current-date');
@@ -80,14 +102,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 month: 'long',
                 day: 'numeric'
             });
-        } else {
-            console.warn('Элемент #current-date не найден');
         }
     } catch (e) {
         console.error('Ошибка форматирования даты:', e);
     }
 
-    // Проверяем существование элемента перед установкой интервала
     const timeInput = document.getElementById('entry-time');
     if (timeInput) {
         setInterval(() => {
