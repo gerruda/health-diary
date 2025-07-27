@@ -617,7 +617,8 @@ button:hover {
         grid-template-areas:
             "weight"
             "reps"
-            "limb";
+            "limb"
+            "remove";
     }
 
     .input-group label {
@@ -635,30 +636,54 @@ button:hover {
         padding-top: 5px;
         border-top: 1px solid #eee;
     }
-}
-
-/* Десктопная версия */
-@media (min-width: 768px) {
-    .set-inputs {
-        grid-template-columns: 1fr 1fr auto auto;
-        grid-template-areas: "weight reps limb remove";
-        align-items: center;
-    }
-
-    .per-limb-cell {
-        margin-top: 0;
-        padding-left: 10px;
-        border-left: 1px solid #eee;
-    }
 
     .remove-cell {
         position: relative;
         top: auto;
         right: auto;
-        padding-left: 10px;
+        text-align: right;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid #eee;
     }
 
-    .per-limb-text {
-        display: none;
+    .btn-remove-set {
+        font-size: 14px;
+        padding: 8px 16px;
+        background-color: #ff6b6b;
+        color: white;
+        border-radius: 4px;
+        border: none;
+    }
+
+    .btn-remove-set i {
+        margin-right: 5px;
+    }
+}
+
+/* Десктопная версия */
+@media (min-width: 768px) {
+    .btn-remove-set {
+        position: relative;
+    }
+
+    .btn-remove-set::after {
+        content: "Удалить подход";
+        position: absolute;
+        top: -30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #333;
+        color: white;
+        padding: 5px;
+        border-radius: 4px;
+        font-size: 12px;
+        white-space: nowrap;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .btn-remove-set:hover::after {
+        opacity: 1;
     }
 }

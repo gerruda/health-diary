@@ -38,16 +38,16 @@ export function initExport() {
     `;
 
     const historyTab = document.getElementById('history');
-    if (historyTab) {
-        historyTab.appendChild(exportSection);
-    }
-
     document.getElementById('export-range')?.addEventListener('change', function() {
         document.getElementById('custom-dates').style.display =
             this.value === 'custom' ? 'block' : 'none';
     });
 
     document.getElementById('export-btn')?.addEventListener('click', exportToExcel);
+
+    if (historyTab) {
+        historyTab.appendChild(exportSection);
+    }
 }
 
 function exportToExcel() {

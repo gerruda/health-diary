@@ -3,6 +3,8 @@ import { loadHistoryData } from './history.js';
 
 let isFormChanged = false;
 let currentDate = '';
+let lastChangeTimestamp = 0;
+let saveTimer = null;
 
 export function initDailyTracker(dataManager) {
     initWeightConditionsList();
@@ -90,23 +92,35 @@ function setupAutoSave(dataManager) {
         }
     });
 
+    // Автосохранение каждую секунду для проверки таймаута
     setInterval(() => {
-        if (isFormChanged) {
-            saveDraft(currentDate, dataManager);
-            console.log('Автосохранение черновика');
+        if (isFormChanged && Date.now() - lastChangeTimestamp > 30000) {
+            saveAsRegularEntry(currentDate, dataManager);
         }
-    }, 30000);
+    }, 1000);
 }
 
-function markFormChanged() {
+function markFormChanged(dataManager) {
     isFormChanged = true;
+    lastChangeTimestamp = Date.now();
     document.getElementById('daily-form').classList.add('unsaved-changes');
+
+    // Сбрасываем предыдущий таймер
+    if (saveTimer) clearTimeout(saveTimer);
+
+    // Устанавливаем новый таймер на 30 секунд
+    saveTimer = setTimeout(() => {
+        if (isFormChanged) {
+            saveAsRegularEntry(currentDate, dataManager);
+        }
+    }, 30000);
 }
 
 function saveDraft(date, dataManager) {
     if (!isFormChanged) return;
 
     const draft = {
+        time: document.getElementById('entry-time').value,
         pulse: document.getElementById('pulse').value,
         sleepHours: document.getElementById('sleep-hours').value,
         sleepMinutes: document.getElementById('sleep-minutes').value,
@@ -129,21 +143,117 @@ function saveDraft(date, dataManager) {
         }
     });
 
+    // Удаляем предыдущие черновики за эту дату
+    dataManager.deleteDraft(date);
+
+    // Сохраняем новый черновик
     dataManager.saveEntry('diary', date, draft, true);
+
     isFormChanged = false;
     document.getElementById('daily-form').classList.remove('unsaved-changes');
+    console.log('Черновик сохранен', new Date().toLocaleTimeString());
+}
+
+function saveAsRegularEntry(date, dataManager) {
+    if (!isFormChanged) return;
+
+    const form = document.getElementById('daily-form');
+    const timeInput = document.getElementById('entry-time');
+    const time = timeInput.value;
+
+    const weighings = [];
+    document.querySelectorAll('.weight-entry').forEach(entry => {
+        const weight = entry.querySelector('.weight-value').value;
+        const condition = entry.querySelector('.weight-condition').value;
+
+        if (weight) {
+            weighings.push({
+                weight: parseFloat(weight),
+                condition: condition || ''
+            });
+        }
+    });
+
+    const entryData = {
+        time: time,
+        pulse: document.getElementById('pulse').value || null,
+        sleepDuration: `${document.getElementById('sleep-hours').value || 0}:${document.getElementById('sleep-minutes').value || 0}`,
+        energyLevel: document.querySelector('input[name="energy"]:checked')?.value || null,
+        weighings: weighings.length > 0 ? weighings : null,
+        steps: document.getElementById('steps').value || null,
+        calories: document.getElementById('calories').value || null,
+        alcohol: document.getElementById('alcohol').value || null,
+        workout: document.getElementById('workout-data').value || null,
+        rpe: document.getElementById('rpe').value || null,
+        mood: document.getElementById('mood').value || null,
+        notes: document.getElementById('notes').value || null
+    };
+
+    // Обновляем условия взвешивания
+    const weightConditions = getWeightConditions();
+    weighings.forEach(w => {
+        if (w.condition && !weightConditions.includes(w.condition)) {
+            weightConditions.push(w.condition);
+        }
+    });
+    saveWeightConditions(weightConditions);
+
+    // Получаем ID или создаем новый
+    let entryId = form.dataset.editingId;
+    if (!entryId) {
+        entryId = Date.now().toString();
+    }
+
+    const entry = {
+        id: entryId,
+        ...entryData
+    };
+
+    // Сохраняем как обычную запись
+    dataManager.saveEntry('diary', date, entry, false);
+
+    // Удаляем черновик
+    dataManager.deleteDraft(date);
+
+    // Обновляем состояние формы
+    form.dataset.editingId = entryId;
+    isFormChanged = false;
+    document.getElementById('daily-form').classList.remove('unsaved-changes');
+
+    console.log('Автосохранено как обычная запись', new Date().toLocaleTimeString());
+
+    // Обновляем историю
+    if (typeof loadHistoryData === 'function') {
+        loadHistoryData(dataManager);
+    }
 }
 
 function loadTodayData(date, dataManager) {
     const timeInput = document.getElementById('entry-time');
+    const form = document.getElementById('daily-form');
 
-    // Поиск черновика
+    // Удаляем старые черновики (старше 1 дня)
+    const allEntries = dataManager.getAllEntries();
+    const now = Date.now();
+    allEntries.forEach(entry => {
+        if (entry.isDraft && now - entry.timestamp > 86400000) { // 24 часа
+            dataManager.deleteEntry(entry.id);
+        }
+    });
+
+    // Поиск актуального черновика
     const drafts = dataManager.getAllEntries().filter(
         e => e.isDraft && e.type === 'diary' && e.date === date
     );
 
     if (drafts.length > 0) {
-        populateFormFromDraft(drafts[0].data);
+        // Берем последний черновик
+        const latestDraft = drafts.reduce((latest, current) =>
+            current.timestamp > latest.timestamp ? current : latest
+        );
+
+        populateForm(latestDraft.data);
+        form.dataset.editingId = latestDraft.id;
         console.log('Загружен черновик для', date);
         return;
     }
@@ -157,7 +267,7 @@ function loadTodayData(date, dataManager) {
         savedEntries.sort((a, b) => b.timestamp - a.timestamp);
         const lastEntry = savedEntries[0];
         populateForm(lastEntry.data);
-        document.getElementById('daily-form').dataset.editingId = lastEntry.id;
+        form.dataset.editingId = lastEntry.id;
 
         if (lastEntry.data.time) {
             timeInput.value = lastEntry.data.time;
@@ -165,45 +275,9 @@ function loadTodayData(date, dataManager) {
     } else {
         const now = new Date();
         timeInput.value = now.toTimeString().substring(0, 5);
-        delete document.getElementById('daily-form').dataset.editingId;
+        delete form.dataset.editingId;
         clearDailyForm();
     }
-}
-
-function populateFormFromDraft(draft) {
-    const setValue = (id, value) => {
-        const element = document.getElementById(id);
-        if (element && value !== undefined && value !== null) {
-            element.value = value;
-        }
-    };
-
-    setValue('pulse', draft.pulse);
-    setValue('sleep-hours', draft.sleepHours);
-    setValue('sleep-minutes', draft.sleepMinutes);
-    setValue('steps', draft.steps);
-    setValue('calories', draft.calories);
-    setValue('alcohol', draft.alcohol);
-    setValue('workout-data', draft.workout);
-    setValue('rpe', draft.rpe);
-    setValue('mood', draft.mood);
-    setValue('notes', draft.notes);
-
-    if (draft.energyLevel) {
-        const energyRadio = document.querySelector(`input[name="energy"][value="${draft.energyLevel}"]`);
-        if (energyRadio) energyRadio.checked = true;
-    }
-
-    const weighingsContainer = document.getElementById('weighings-container');
-    weighingsContainer.innerHTML = '';
-
-    if (draft.weighings && draft.weighings.length > 0) {
-        draft.weighings.forEach(w => addWeightEntry(w.weight, w.condition));
-    } else {
-        addWeightEntry();
-    }
-
-    initRPEVisibility();
 }
 
 function initRPEVisibility() {

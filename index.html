@@ -180,9 +180,9 @@
 
             <div class="form-group">
                 <label><i class="fas fa-list-ol"></i> Подходы:</label>
-                <tbody id="sets-body">
-                <!-- Подходы будут добавляться динамически -->
-                </tbody>
+<!--                <tbody id="sets-body">-->
+<!--                &lt;!&ndash; Подходы будут добавляться динамически &ndash;&gt;-->
+<!--                </tbody>-->
                 <table id="sets-table">
                     <thead>
                     <tr>
@@ -299,43 +299,5 @@
 </div>
 
 <script type="module" src="js/main.js"></script>
-<!--<script>-->
-<!--    if ('serviceWorker' in navigator) {-->
-<!--        window.addEventListener('load', async () => {-->
-<!--            try {-->
-<!--                const reg = await navigator.serviceWorker.register('service-worker.js');-->
-<!--                console.log('SW registered:', reg);-->
-
-<!--                // Проверка обновлений Service Worker-->
-<!--                reg.onupdatefound = () => {-->
-<!--                    const newWorker = reg.installing;-->
-<!--                    newWorker.onstatechange = () => {-->
-<!--                        if (newWorker.state === 'installed') {-->
-<!--                            if (navigator.serviceWorker.controller) {-->
-<!--                                console.log('New content available; please refresh.');-->
-<!--                            } else {-->
-<!--                                console.log('Content is cached for offline use.');-->
-<!--                            }-->
-<!--                        }-->
-<!--                    };-->
-<!--                };-->
-<!--            } catch (err) {-->
-<!--                console.error('SW registration failed:', err);-->
-<!--            }-->
-<!--        });-->
-<!--    }-->
-
-<!--    window.addEventListener('beforeinstallprompt', e => {-->
-<!--        e.preventDefault();-->
-<!--        const installBtn = document.createElement('button');-->
-<!--        installBtn.textContent = 'Установить приложение';-->
-<!--        installBtn.className = 'install-button';-->
-<!--        installBtn.onclick = () => {-->
-<!--            e.prompt();-->
-<!--            installBtn.remove();-->
-<!--        };-->
-<!--        document.body.appendChild(installBtn);-->
-<!--    });-->
-<!--</script>-->
 </body>
 </html>

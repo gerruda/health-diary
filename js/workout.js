@@ -34,8 +34,13 @@ export function initWorkoutTracker() {
 
     // Добавляем обработчик для удаления подходов
     document.getElementById('sets-body')?.addEventListener('click', (e) => {
-        if (e.target.classList.contains('btn-remove-set')) {
-            e.target.closest('tr').remove();
+        if (e.target.closest('.btn-remove-set')) {
+            const row = e.target.closest('tr');
+            row.classList.add('removing');
+
+            setTimeout(() => {
+                row.remove();
+            }, 300);
         }
     });
 
@@ -139,29 +144,31 @@ export function populateWorkoutForm(exercise) {
             const row = document.createElement('tr');
             row.className = 'approach-row';
             row.innerHTML = `
-                <td class="set-inputs">
-                    <div class="input-group weight">
-                        <label>Вес (кг)</label>
-                        <input type="number" class="set-weight" step="0.1" min="0" 
-                               value="${set.weight || ''}">
-                    </div>
-                    <div class="input-group reps">
-                        <label>Повторения</label>
-                        <input type="number" class="set-reps" min="1" 
-                               value="${set.reps || ''}">
-                    </div>
-                    <div class="per-limb-cell">
-                        <label class="per-limb-label" title="На каждую конечность">
-                            <input type="checkbox" class="set-per-limb" ${set.perLimb ? 'checked' : ''}>
-                            <span class="per-limb-text">На конечность</span>
-                            <span class="per-limb-icon">⇆</span>
-                        </label>
-                    </div>
-                    <div class="remove-cell">
-                        <button type="button" class="btn-remove-set"><i class="fas fa-times"></i></button>
-                    </div>
-                </td>
-            `;
+    <td class="set-inputs">
+        <div class="input-group weight">
+            <label>Вес (кг)</label>
+            <input type="number" class="set-weight" step="0.1" min="0" 
+                   value="${set.weight || ''}">
+        </div>
+        <div class="input-group reps">
+            <label>Повторения</label>
+            <input type="number" class="set-reps" min="1" 
+                   value="${set.reps || ''}">
+        </div>
+        <div class="per-limb-cell">
+            <label class="per-limb-label" title="На каждую конечность">
+                <input type="checkbox" class="set-per-limb" ${set.perLimb ? 'checked' : ''}>
+                <span class="per-limb-text">На конечность</span>
+                <span class="per-limb-icon">⇆</span>
+            </label>
+        </div>
+        <div class="remove-cell">
+            <button type="button" class="btn-remove-set">
+                <i class="fas fa-trash"></i> Удалить подход
+            </button>
+        </div>
+    </td>
+`;
             setsContainer.appendChild(row);
         });
     }
@@ -242,29 +249,31 @@ function addSetRow() {
     const row = document.createElement('tr');
     row.className = 'approach-row';
     row.innerHTML = `
-        <td class="set-inputs">
-            <div class="input-group weight">
-                <label>Вес (кг)</label>
-                <input type="number" class="set-weight" step="0.1" min="0" 
-                       value="${lastWeight}">
-            </div>
-            <div class="input-group reps">
-                <label>Повторения</label>
-                <input type="number" class="set-reps" min="1" 
-                       value="${lastReps}">
-            </div>
-            <div class="per-limb-cell">
-                <label class="per-limb-label" title="На каждую конечность">
-                    <input type="checkbox" class="set-per-limb" ${lastPerLimb ? 'checked' : ''}>
-                    <span class="per-limb-text">На конечность</span>
-                    <span class="per-limb-icon">⇆</span>
-                </label>
-            </div>
-            <div class="remove-cell">
-                <button type="button" class="btn-remove-set"><i class="fas fa-times"></i></button>
-            </div>
-        </td>
-    `;
+    <td class="set-inputs">
+        <div class="input-group weight">
+            <label>Вес (кг)</label>
+            <input type="number" class="set-weight" step="0.1" min="0" 
+                   value="${lastWeight}">
+        </div>
+        <div class="input-group reps">
+            <label>Повторения</label>
+            <input type="number" class="set-reps" min="1" 
+                   value="${lastReps}">
+        </div>
+        <div class="per-limb-cell">
+            <label class="per-limb-label" title="На каждую конечность">
+                <input type="checkbox" class="set-per-limb" ${lastPerLimb ? 'checked' : ''}>
+                <span class="per-limb-text">На конечность</span>
+                <span class="per-limb-icon">⇆</span>
+            </label>
+        </div>
+        <div class="remove-cell">
+            <button type="button" class="btn-remove-set">
+                <i class="fas fa-trash"></i> Удалить подход
+            </button>
+        </div>
+    </td>
+`;
     tbody.appendChild(row);
 
     // Фокус на поле веса нового подхода

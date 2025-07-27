@@ -194,21 +194,3 @@ function deleteEntry(type, date, id, dataManager) {
     // Генерируем событие для обновления других компонентов
     dataManager.emit('entry-deleted', { type, date, id });
 }
-
-// Для обратной совместимости
-export function editHealthEntry(date, time, dataManager) {
-    const entries = dataManager.getAllEntries();
-    const entry = entries.find(e =>
-        e.type === 'diary' &&
-        e.date === date &&
-        e.data.time === time
-    );
-
-    if (entry) {
-        editEntry('diary', date, entry.id, dataManager);
-    }
-}
-
-export function editWorkoutEntry(date, id, dataManager) {
-    editEntry('training', date, id, dataManager);
-}

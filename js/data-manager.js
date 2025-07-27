@@ -95,30 +95,23 @@ export default class DataManager extends EventEmitter {
         this._saveData();
     }
 
-    deleteDraft(date) {
-        const drafts = JSON.parse(sessionStorage.getItem(DRAFTS_KEY) || '[]');
-        const filtered = drafts.filter(entry => entry.date !== date);
-        sessionStorage.setItem(DRAFTS_KEY, JSON.stringify(filtered));
-        this.emit('draft-deleted', date);
-        this._saveData();
+    deleteEntry(id) {
+        const entries = this.getAllEntries();
+        const updated = entries.filter(entry => entry.id !== id);
+
+        const saved = updated.filter(e => !e.isDraft);
+        const drafts = updated.filter(e => e.isDraft);
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+        sessionStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts));
+
+        this.emit('entry-deleted', id);
     }
 
-    getEntries(type, period = 'all') {
-        const entries = this.getAllEntries().filter(entry =>
-            entry.type === type && !entry.isDraft
-        );
-
-        // Фильтрация по периоду
-        if (period === 'week') {
-            const today = new Date();
-            const startOfWeek = new Date(today);
-            startOfWeek.setDate(today.getDate() - today.getDay());
-
-            return entries.filter(entry =>
-                new Date(entry.date) >= startOfWeek
-            );
-        }
-
-        return entries;
+    deleteDraft(date) {
+        const drafts = JSON.parse(sessionStorage.getItem(DRAFTS_KEY) || []);
+        const filtered = drafts.filter(entry => !(entry.date === date && entry.isDraft));
+        sessionStorage.setItem(DRAFTS_KEY, JSON.stringify(filtered));
+        this.emit('draft-deleted', date);
     }
 }
