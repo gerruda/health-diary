@@ -541,13 +541,16 @@ button:hover {
     width: 40px;
 }
 
-/* Адаптивные стили для подходов */
+/* Переработанные стили для подходов тренировок */
 .approach-row {
+    position: relative;
     display: block;
-    margin-bottom: 15px;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    padding: 10px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 15px;
+    background-color: var(--history-entry-bg);
+    transition: transform 0.3s ease, opacity 0.3s ease;
 }
 
 .set-inputs {
@@ -555,8 +558,9 @@ button:hover {
     grid-template-columns: 1fr 1fr;
     grid-template-areas:
         "weight reps"
-        "limb limb";
-    gap: 10px;
+        "limb limb"
+        "remove remove";
+    gap: 15px;
 }
 
 .input-group {
@@ -572,118 +576,147 @@ button:hover {
     grid-area: reps;
 }
 
+.input-group label {
+    font-size: 0.9rem;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 12px;
+    font-size: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background-color: var(--input-bg);
+    color: var(--text-primary);
+}
+
 .per-limb-cell {
     grid-area: limb;
     display: flex;
     align-items: center;
-    margin-top: 5px;
-}
-
-.remove-cell {
-    position: absolute;
-    top: 5px;
-    right: 5px;
+    padding: 10px 0;
+    min-width: 0; /* Важно для предотвращения переполнения */
 }
 
 .per-limb-label {
     display: flex;
     align-items: center;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
 }
 
 .per-limb-text {
-    margin-left: 5px;
-    margin-right: 5px;
+    margin-left: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.per-limb-icon {
-    font-weight: bold;
+.remove-cell {
+    grid-area: remove;
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 5px;
 }
 
 .btn-remove-set {
-    background: none;
+    background-color: var(--danger);
+    color: white;
     border: none;
-    color: #ff6b6b;
+    border-radius: 6px;
+    padding: 10px 15px;
+    font-size: 0.9rem;
     cursor: pointer;
-    font-size: 16px;
-    padding: 5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 0.3s;
+    white-space: nowrap;
+}
+
+.btn-remove-set:hover {
+    background-color: #c0392b;
 }
 
 /* Мобильная адаптация */
 @media (max-width: 480px) {
-    .set-inputs {
-        grid-template-columns: 1fr;
-        grid-template-areas:
-            "weight"
-            "reps"
-            "limb"
-            "remove";
+    .approach-row {
+        padding: 12px;
     }
 
-    .input-group label {
-        font-size: 14px;
-        margin-bottom: 3px;
+    .set-inputs {
+        gap: 12px;
     }
 
     .input-group input {
-        padding: 8px;
-        font-size: 14px;
-    }
-
-    .per-limb-cell {
-        margin-top: 10px;
-        padding-top: 5px;
-        border-top: 1px solid #eee;
-    }
-
-    .remove-cell {
-        position: relative;
-        top: auto;
-        right: auto;
-        text-align: right;
-        margin-top: 10px;
-        padding-top: 10px;
-        border-top: 1px solid #eee;
+        padding: 10px;
+        font-size: 1rem;
     }
 
     .btn-remove-set {
-        font-size: 14px;
-        padding: 8px 16px;
-        background-color: #ff6b6b;
-        color: white;
-        border-radius: 4px;
-        border: none;
+        width: 100%;
+        justify-content: center;
     }
 
-    .btn-remove-set i {
-        margin-right: 5px;
+    .btn-remove-set span {
+        display: none;
+    }
+}
+
+/* Планшетная версия */
+@media (min-width: 481px) and (max-width: 767px) {
+    .set-inputs {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "weight reps"
+            "limb limb"
+            "remove remove";
+    }
+
+    .btn-remove-set {
+        font-size: 0.85rem;
+        padding: 8px 12px;
     }
 }
 
 /* Десктопная версия */
 @media (min-width: 768px) {
+    .set-inputs {
+        grid-template-columns: minmax(100px, 1fr) minmax(100px, 1fr) minmax(180px, auto) minmax(140px, auto);
+        grid-template-areas: "weight reps limb remove";
+        align-items: center;
+        gap: 20px;
+    }
+
+    .input-group {
+        min-width: 100px;
+    }
+
+    .per-limb-cell {
+        padding: 0 15px;
+        border-left: 1px solid var(--border-color);
+        border-right: 1px solid var(--border-color);
+        min-width: 180px;
+        max-width: 180px; /* Фиксируем максимальную ширину */
+    }
+
+    .per-limb-label {
+        max-width: 180px;
+    }
+
+    .remove-cell {
+        justify-content: flex-start;
+        min-width: 140px;
+        padding-left: 10px;
+    }
+
     .btn-remove-set {
-        position: relative;
-    }
-
-    .btn-remove-set::after {
-        content: "Удалить подход";
-        position: absolute;
-        top: -30px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: #333;
-        color: white;
-        padding: 5px;
-        border-radius: 4px;
-        font-size: 12px;
-        white-space: nowrap;
-        opacity: 0;
-        transition: opacity 0.3s;
-    }
-
-    .btn-remove-set:hover::after {
-        opacity: 1;
+        min-width: 140px;
     }
 }

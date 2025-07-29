@@ -24,11 +24,34 @@ export function initDailyTracker(dataManager) {
     currentDate = dateInput.value || new Date().toISOString().split('T')[0];
     dateInput.value = currentDate;
 
+    // Добавляем подсказку для формата даты
+    dateInput.placeholder = 'ГГГГ-ММ-ДД';
+    dateInput.title = 'Формат: ГГГГ-ММ-ДД';
+
+    const dateContainer = document.createElement('div');
+    dateContainer.className = 'date-container';
+    dateInput.parentNode.insertBefore(dateContainer, dateInput);
+    dateContainer.appendChild(dateInput);
+
+    // Создаем кнопку выбора даты
+    const datePickerBtn = document.createElement('button');
+    datePickerBtn.innerHTML = '📅';
+    datePickerBtn.type = 'button';
+    datePickerBtn.className = 'btn-datepicker';
+    datePickerBtn.title = 'Выбрать дату из календаря';
+    dateContainer.appendChild(datePickerBtn);
+
+    // Кнопка "Сегодня"
     const todayButton = document.createElement('button');
     todayButton.textContent = 'Сегодня';
     todayButton.type = 'button';
     todayButton.className = 'btn-today';
-    dateInput.parentNode.insertBefore(todayButton, dateInput.nextSibling);
+    dateContainer.appendChild(todayButton);
+
+    // Обработчик для кнопки выбора даты
+    datePickerBtn.addEventListener('click', () => {
+        dateInput.showPicker(); // Открывает нативный date picker
+    });
 
     todayButton.addEventListener('click', () => {
         saveDraft(currentDate, dataManager);
@@ -100,7 +123,7 @@ function setupAutoSave(dataManager) {
     }, 1000);
 }
 
-function markFormChanged(dataManager) {
+function markFormChanged() {
     isFormChanged = true;
     lastChangeTimestamp = Date.now();
     document.getElementById('daily-form').classList.add('unsaved-changes');
@@ -228,7 +251,7 @@ function saveAsRegularEntry(date, dataManager) {
     }
 }
 
-function loadTodayData(date, dataManager) {
+export function loadTodayData(date, dataManager) {
     const timeInput = document.getElementById('entry-time');
     const form = document.getElementById('daily-form');
 
@@ -262,6 +285,23 @@ function loadTodayData(date, dataManager) {
     const savedEntries = dataManager.getAllEntries().filter(
         e => !e.isDraft && e.type === 'diary' && e.date === date
     );
+
+    // После загрузки данных проверяем режим редактирования
+    setTimeout(() => {
+        const form = document.getElementById('daily-form');
+        if (form && form.dataset.editingId) {
+            const entryId = form.dataset.editingId;
+            const entries = dataManager.getAllEntries();
+            const entry = entries.find(e => e.id == entryId && e.date === date);
+
+            if (entry) {
+                populateForm(entry.data);
+                if (entry.data.time) {
+                    timeInput.value = entry.data.time;
+                }
+            }
+        }
+    }, 50);
 
     if (savedEntries.length > 0) {
         savedEntries.sort((a, b) => b.timestamp - a.timestamp);
@@ -378,7 +418,7 @@ function handleDailySubmit(e, date, dataManager) {
     });
     saveWeightConditions(weightConditions);
 
-    // Получаем ID редактируемой записи или создаем новый
+    // Получаем ID редактируемой записи
     let entryId = document.getElementById('daily-form').dataset.editingId;
     if (!entryId) {
         entryId = Date.now().toString();

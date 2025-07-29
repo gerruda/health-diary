@@ -7,9 +7,12 @@ import {
 import { loadHistoryData } from "./history.js";
 
 let setCount = 0;
+let dataManagerInstance;
 
-export function initWorkoutTracker() {
+export function initWorkoutTracker(dataManager) {
     initExercisesList();
+
+    dataManagerInstance = dataManager;
 
     const workoutForm = document.getElementById('workout-form');
     if (!workoutForm) return;
@@ -164,40 +167,10 @@ export function populateWorkoutForm(exercise) {
         </div>
         <div class="remove-cell">
             <button type="button" class="btn-remove-set">
-                <i class="fas fa-trash"></i> Удалить подход
+                <i class="fas fa-trash"></i>
+                <span>Удалить</span>
             </button>
         </div>
-    </td>
-`;
-            setsContainer.appendChild(row);
-        });
-    }
-    if (setsContainer) {
-        setsContainer.innerHTML = '';
-
-        exercise.sets.forEach((set) => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-    <td class="set-inputs">
-        <div class="input-group">
-            <label>Вес (кг)</label>
-            <input type="number" class="set-weight" step="0.1" min="0" 
-                   value="${set.weight || ''}">
-        </div>
-        <div class="input-group">
-            <label>Повторения</label>
-            <input type="number" class="set-reps" min="1" 
-                   value="${set.reps || ''}">
-        </div>
-    </td>
-    <td class="per-limb-cell">
-        <label class="per-limb-label" title="На каждую конечность">
-            <input type="checkbox" class="set-per-limb" ${set.perLimb ? 'checked' : ''}>
-            <span class="per-limb-icon">⇆</span>
-        </label>
-    </td>
-    <td class="remove-cell">
-        <button type="button" class="btn-remove-set"><i class="fas fa-times"></i></button>
     </td>
 `;
             setsContainer.appendChild(row);
@@ -206,6 +179,12 @@ export function populateWorkoutForm(exercise) {
 
     // Обновляем счетчик подходов
     setCount = exercise.sets.length;
+
+    // Убедитесь, что устанавливаете ID тренировки
+    const form = document.getElementById('workout-form');
+    if (form && data.id) {
+        form.dataset.editingId = data.id;
+    }
 }
 
 export function initExercisesList() {
@@ -269,7 +248,8 @@ function addSetRow() {
         </div>
         <div class="remove-cell">
             <button type="button" class="btn-remove-set">
-                <i class="fas fa-trash"></i> Удалить подход
+                <i class="fas fa-trash"></i>
+                <span>Удалить</span>
             </button>
         </div>
     </td>
@@ -388,6 +368,8 @@ function saveWorkout(e) {
 
     // Обновляем список упражнений за сегодня
     loadTodayExercises();
+
+    dataManagerInstance.saveEntry('training', currentDate, workout, false);
 
     // Обновляем историю
     if (typeof loadHistoryData === 'function') {

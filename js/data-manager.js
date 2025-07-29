@@ -77,13 +77,23 @@ export default class DataManager extends EventEmitter {
     }
 
     saveEntry(type, date, data, isDraft = false) {
+        if (!data.id) {
+            data.id = Date.now().toString();
+        }
         const entries = this.getAllEntries();
         const newEntry = this._createEntry(type, date, data, isDraft);
+
+        // Проверяем, что дата в правильном формате
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+            console.error('Invalid date format:', date);
+            return;
+        }
 
         // Удаляем старые записи того же типа и даты
         const filtered = entries.filter(entry =>
             !(entry.date === date && entry.type === type && entry.isDraft === isDraft)
         );
+
 
         const storage = isDraft ? sessionStorage : localStorage;
         storage.setItem(
@@ -97,15 +107,18 @@ export default class DataManager extends EventEmitter {
 
     deleteEntry(id) {
         const entries = this.getAllEntries();
-        const updated = entries.filter(entry => entry.id !== id);
+        const updatedEntries = entries.filter(entry => entry.id != id);
 
-        const saved = updated.filter(e => !e.isDraft);
-        const drafts = updated.filter(e => e.isDraft);
+        // Разделяем на сохраненные и черновики
+        const saved = updatedEntries.filter(e => !e.isDraft);
+        const drafts = updatedEntries.filter(e => e.isDraft);
 
+        // Сохраняем раздельно
         localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
         sessionStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts));
 
         this.emit('entry-deleted', id);
+        return true;
     }
 
     deleteDraft(date) {

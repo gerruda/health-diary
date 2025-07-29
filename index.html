@@ -180,9 +180,6 @@
 
             <div class="form-group">
                 <label><i class="fas fa-list-ol"></i> Подходы:</label>
-<!--                <tbody id="sets-body">-->
-<!--                &lt;!&ndash; Подходы будут добавляться динамически &ndash;&gt;-->
-<!--                </tbody>-->
                 <table id="sets-table">
                     <thead>
                     <tr>
@@ -194,17 +191,29 @@
                     <tbody id="sets-body">
                     <tr>
                         <td class="set-inputs">
-                            <input type="number" class="set-weight" step="0.1" min="0" placeholder="Вес (кг)">
-                            <input type="number" class="set-reps" min="1" placeholder="Повторения">
-                        </td>
-                        <td class="per-limb-cell">
-                            <label class="per-limb-label">
-                                <input type="checkbox" class="set-per-limb">
-                                На каждую конечность
-                            </label>
-                        </td>
-                        <td class="remove-cell">
-                            <button type="button" class="btn-remove-set"><i class="fas fa-times"></i></button>
+                            <div class="input-group weight">
+                                <label>Вес (кг)</label>
+                                <input type="number" class="set-weight" step="0.1" min="0"
+                                       value="${set.weight || ''}">
+                            </div>
+                            <div class="input-group reps">
+                                <label>Повторения</label>
+                                <input type="number" class="set-reps" min="1"
+                                       value="${set.reps || ''}">
+                            </div>
+                            <div class="per-limb-cell">
+                                <label class="per-limb-label" title="На каждую конечность">
+                                    <input type="checkbox" class="set-per-limb" }>
+                                    <span class="per-limb-text">На конечность</span>
+                                    <span class="per-limb-icon">⇆</span>
+                                </label>
+                            </div>
+                            <div class="remove-cell">
+                                <button type="button" class="btn-remove-set">
+                                    <i class="fas fa-trash"></i>
+                                    <span>Удалить</span>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     </tbody>
