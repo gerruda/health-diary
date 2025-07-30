@@ -20,30 +20,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Регистрация Service Worker
     if ('serviceWorker' in navigator) {
-        const registerSW = async () => {
-            try {
-                // Определяем базовый путь для GitHub Pages
-                const basePath = location.pathname.includes('health-diary')
-                    ? '/health-diary/'
-                    : '/';
+        const basePath = location.pathname.split('/').slice(0, -1).join('/') || '/';
 
-                const registration = await navigator.serviceWorker.register(
-                    `${basePath}service-worker.js`,
-                    { scope: basePath }
-                );
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register(`${basePath}/service-worker.js`)
+                .then(registration => {
+                    console.log('SW зарегистрирован:', registration);
 
-                console.log('[SW] Зарегистрирован:', registration);
-
-                // Принудительно обновляем Service Worker при первой загрузке
-                if (!navigator.serviceWorker.controller) {
-                    await registration.update();
-                }
-            } catch (error) {
-                console.error('[SW] Ошибка регистрации:', error);
-            }
-        };
-
-        window.addEventListener('load', registerSW);
+                    // Принудительное обновление при загрузке
+                    registration.update();
+                })
+                .catch(error => {
+                    console.error('Ошибка регистрации SW:', error);
+                });
+        });
     }
 
     try {
