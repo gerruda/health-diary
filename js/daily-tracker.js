@@ -5,9 +5,12 @@ let isFormChanged = false;
 let currentDate = '';
 let lastChangeTimestamp = 0;
 let saveTimer = null;
+let dataManagerInstance; // Исправлено имя переменной
 
 export function initDailyTracker(dataManager) {
     initWeightConditionsList();
+
+    dataManagerInstance = dataManager; // Сохраняем экземпляр DataManager
 
     const dailyForm = document.getElementById('daily-form');
     if (!dailyForm) return;
@@ -54,20 +57,20 @@ export function initDailyTracker(dataManager) {
     });
 
     todayButton.addEventListener('click', () => {
-        saveDraft(currentDate, dataManager);
+        saveDraft(currentDate);
         const today = new Date().toISOString().split('T')[0];
         dateInput.value = today;
         currentDate = today;
-        loadTodayData(today, dataManager);
+        loadTodayData(today);
     });
 
     dateInput.addEventListener('change', () => {
-        saveDraft(currentDate, dataManager);
+        saveDraft(currentDate);
         currentDate = dateInput.value;
-        loadTodayData(currentDate, dataManager);
+        loadTodayData(currentDate);
     });
 
-    loadTodayData(currentDate, dataManager);
+    loadTodayData(currentDate);
     initRPEVisibility();
 
     const addWeightBtn = document.getElementById('add-weight');
@@ -77,13 +80,13 @@ export function initDailyTracker(dataManager) {
 
     dailyForm.addEventListener('submit', (e) => {
         const currentDate = document.getElementById('entry-date').value;
-        handleDailySubmit(e, currentDate, dataManager);
+        handleDailySubmit(e, currentDate);
     });
 
-    setupAutoSave(dataManager);
+    setupAutoSave();
 }
 
-function setupAutoSave(dataManager) {
+function setupAutoSave() {
     const fieldsToTrack = [
         'pulse', 'sleep-hours', 'sleep-minutes', 'steps',
         'calories', 'alcohol', 'workout-data', 'rpe', 'mood', 'notes'
@@ -109,7 +112,7 @@ function setupAutoSave(dataManager) {
 
     window.addEventListener('beforeunload', (e) => {
         if (isFormChanged) {
-            saveDraft(currentDate, dataManager);
+            saveDraft(currentDate);
             e.preventDefault();
             e.returnValue = '';
         }
@@ -118,7 +121,7 @@ function setupAutoSave(dataManager) {
     // Автосохранение каждую секунду для проверки таймаута
     setInterval(() => {
         if (isFormChanged && Date.now() - lastChangeTimestamp > 30000) {
-            saveAsRegularEntry(currentDate, dataManager);
+            saveAsRegularEntry(currentDate);
         }
     }, 1000);
 }
@@ -134,12 +137,12 @@ function markFormChanged() {
     // Устанавливаем новый таймер на 30 секунд
     saveTimer = setTimeout(() => {
         if (isFormChanged) {
-            saveAsRegularEntry(currentDate, dataManager);
+            saveAsRegularEntry(currentDate);
         }
     }, 30000);
 }
 
-function saveDraft(date, dataManager) {
+function saveDraft(date) {
     if (!isFormChanged) return;
 
     const draft = {
@@ -167,23 +170,24 @@ function saveDraft(date, dataManager) {
     });
 
     // Удаляем предыдущие черновики за эту дату
-    dataManager.deleteDraft(date);
+    dataManagerInstance.deleteDraft(date);
 
     // Сохраняем новый черновик
-    dataManager.saveEntry('diary', date, draft, true);
+    dataManagerInstance.saveEntry('diary', date, draft, true);
 
     isFormChanged = false;
     document.getElementById('daily-form').classList.remove('unsaved-changes');
     console.log('Черновик сохранен', new Date().toLocaleTimeString());
 }
 
-function saveAsRegularEntry(date, dataManager) {
+function saveAsRegularEntry(date) {
     if (!isFormChanged) return;
 
     const form = document.getElementById('daily-form');
     const timeInput = document.getElementById('entry-time');
     const time = timeInput.value;
 
+    // Сбор данных взвешивания
     const weighings = [];
     document.querySelectorAll('.weight-entry').forEach(entry => {
         const weight = entry.querySelector('.weight-value').value;
@@ -197,6 +201,7 @@ function saveAsRegularEntry(date, dataManager) {
         }
     });
 
+    // Формируем данные записи
     const entryData = {
         time: time,
         pulse: document.getElementById('pulse').value || null,
@@ -221,22 +226,35 @@ function saveAsRegularEntry(date, dataManager) {
     });
     saveWeightConditions(weightConditions);
 
-    // Получаем ID или создаем новый
+    // Получаем или создаем ID записи
     let entryId = form.dataset.editingId;
+
+    // Если ID нет, проверяем существующую запись за эту дату
     if (!entryId) {
-        entryId = Date.now().toString();
+        const existingEntry = dataManagerInstance.getAllEntries().find(
+            e => e.type === 'diary' &&
+                e.date === date &&
+                !e.isDraft
+        );
+
+        if (existingEntry) {
+            entryId = existingEntry.id;
+        } else {
+            entryId = Date.now().toString();
+        }
     }
 
+    // Формируем полную запись
     const entry = {
         id: entryId,
         ...entryData
     };
 
-    // Сохраняем как обычную запись
-    dataManager.saveEntry('diary', date, entry, false);
+    // Сохраняем через DataManager
+    dataManagerInstance.saveEntry('diary', date, entry, false);
 
     // Удаляем черновик
-    dataManager.deleteDraft(date);
+    dataManagerInstance.deleteDraft(date);
 
     // Обновляем состояние формы
     form.dataset.editingId = entryId;
@@ -247,25 +265,25 @@ function saveAsRegularEntry(date, dataManager) {
 
     // Обновляем историю
     if (typeof loadHistoryData === 'function') {
-        loadHistoryData(dataManager);
+        loadHistoryData(dataManagerInstance);
     }
 }
 
-export function loadTodayData(date, dataManager) {
+export function loadTodayData(date) {
     const timeInput = document.getElementById('entry-time');
     const form = document.getElementById('daily-form');
 
     // Удаляем старые черновики (старше 1 дня)
-    const allEntries = dataManager.getAllEntries();
+    const allEntries = dataManagerInstance.getAllEntries();
     const now = Date.now();
     allEntries.forEach(entry => {
         if (entry.isDraft && now - entry.timestamp > 86400000) { // 24 часа
-            dataManager.deleteEntry(entry.id);
+            dataManagerInstance.deleteEntry(entry.id);
         }
     });
 
     // Поиск актуального черновика
-    const drafts = dataManager.getAllEntries().filter(
+    const drafts = dataManagerInstance.getAllEntries().filter(
         e => e.isDraft && e.type === 'diary' && e.date === date
     );
 
@@ -282,26 +300,9 @@ export function loadTodayData(date, dataManager) {
     }
 
     // Поиск сохраненных записей
-    const savedEntries = dataManager.getAllEntries().filter(
+    const savedEntries = dataManagerInstance.getAllEntries().filter(
         e => !e.isDraft && e.type === 'diary' && e.date === date
     );
-
-    // После загрузки данных проверяем режим редактирования
-    setTimeout(() => {
-        const form = document.getElementById('daily-form');
-        if (form && form.dataset.editingId) {
-            const entryId = form.dataset.editingId;
-            const entries = dataManager.getAllEntries();
-            const entry = entries.find(e => e.id == entryId && e.date === date);
-
-            if (entry) {
-                populateForm(entry.data);
-                if (entry.data.time) {
-                    timeInput.value = entry.data.time;
-                }
-            }
-        }
-    }, 50);
 
     if (savedEntries.length > 0) {
         savedEntries.sort((a, b) => b.timestamp - a.timestamp);
@@ -372,8 +373,23 @@ export function populateForm(data) {
     }
 }
 
-function handleDailySubmit(e, date, dataManager) {
+function handleDailySubmit(e, date) {
     e.preventDefault();
+
+    // Проверяем, есть ли уже сохраненная запись за этот день
+    const existingEntries = dataManagerInstance.getAllEntries().filter(
+        e => e.type === 'diary' &&
+            e.date === date &&
+            !e.isDraft
+    );
+
+    let entryId;
+    if (existingEntries.length > 0) {
+        // Используем ID первой найденной записи
+        entryId = existingEntries[0].id;
+    } else {
+        entryId = document.getElementById('daily-form').dataset.editingId || Date.now().toString();
+    }
 
     const weightConditions = getWeightConditions();
     const timeInput = document.getElementById('entry-time');
@@ -418,12 +434,6 @@ function handleDailySubmit(e, date, dataManager) {
     });
     saveWeightConditions(weightConditions);
 
-    // Получаем ID редактируемой записи
-    let entryId = document.getElementById('daily-form').dataset.editingId;
-    if (!entryId) {
-        entryId = Date.now().toString();
-    }
-
     // Формируем полную запись для сохранения
     const entry = {
         id: entryId,
@@ -431,10 +441,10 @@ function handleDailySubmit(e, date, dataManager) {
     };
 
     // Сохраняем через DataManager
-    dataManager.saveEntry('diary', date, entry, false);
+    dataManagerInstance.saveEntry('diary', date, entry, false);
 
     // Удаляем черновик
-    dataManager.deleteDraft(date);
+    dataManagerInstance.deleteDraft(date);
 
     // Сбрасываем состояние формы
     delete document.getElementById('daily-form').dataset.editingId;
@@ -442,7 +452,7 @@ function handleDailySubmit(e, date, dataManager) {
 
     // Обновляем историю
     if (typeof loadHistoryData === 'function') {
-        loadHistoryData(dataManager);
+        loadHistoryData(dataManagerInstance);
     }
 }
 

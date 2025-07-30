@@ -1,12 +1,11 @@
 import { formatDate, activateTab, confirmAction } from './utils.js';
-import { populateForm } from './daily-tracker.js';
 import { populateWorkoutForm } from './workout.js';
 
 export function initHistory(dataManager) {
     loadHistoryData(dataManager);
     document.getElementById('history-date')?.addEventListener('change', () => loadHistoryData(dataManager));
 
-    // Добавляем обработчик событий для обновления истории
+    // Обработчики событий
     dataManager.on('entry-updated', () => loadHistoryData(dataManager));
     dataManager.on('entry-deleted', () => loadHistoryData(dataManager));
 }
@@ -19,20 +18,13 @@ export function loadHistoryData(dataManager) {
 
     historyList.innerHTML = '';
 
-    // Получаем все записи (исключая черновики)
+    // Получаем и группируем записи
     const allEntries = dataManager.getAllEntries().filter(entry => !entry.isDraft);
-
-    // Группируем записи по дате и типу
     const entriesByDate = {};
 
     allEntries.forEach(entry => {
-        if (!entry.id) entry.id = Date.now(); // Добавляем ID если его нет
-
         if (!entriesByDate[entry.date]) {
-            entriesByDate[entry.date] = {
-                diary: [],
-                training: []
-            };
+            entriesByDate[entry.date] = { diary: [], training: [] };
         }
 
         if (entry.type === 'diary') {
@@ -68,24 +60,26 @@ export function loadHistoryData(dataManager) {
         });
         historyList.appendChild(dateHeader);
 
-        // Записи о здоровье
+        // Дневные записи
         if (entriesByDate[date].diary.length > 0) {
             entriesByDate[date].diary.forEach(entry => {
-                const entryEl = createDiaryEntryElement(entry, date);
-                historyList.appendChild(entryEl);
+                historyList.appendChild(createDiaryEntryElement(entry, date));
             });
         }
 
         // Тренировки
         if (entriesByDate[date].training.length > 0) {
+            const workoutHeader = document.createElement('h4');
+            workoutHeader.textContent = 'Тренировки';
+            workoutHeader.className = 'workout-header';
+            historyList.appendChild(workoutHeader);
+
             entriesByDate[date].training.forEach(entry => {
-                const entryEl = createTrainingEntryElement(entry, date);
-                historyList.appendChild(entryEl);
+                historyList.appendChild(createTrainingEntryElement(entry));
             });
         }
     });
 
-    // Добавляем обработчики событий
     setupEntryEventHandlers(dataManager);
 }
 
@@ -127,27 +121,6 @@ function createDiaryEntryElement(entry, date) {
     return entryEl;
 }
 
-function createTrainingEntryElement(entry, date) {
-    const exercise = entry.data;
-    const exerciseEl = document.createElement('div');
-    exerciseEl.className = 'history-exercise';
-    exerciseEl.innerHTML = `
-        <div class="entry-header">
-            <span>${exercise.name}</span>
-            <div class="entry-actions">
-                <button class="edit-btn" data-type="training" data-date="${date}" data-id="${entry.id}">✏️</button>
-                <button class="delete-btn" data-type="training" data-date="${date}" data-id="${entry.id}">🗑️</button>
-            </div>
-        </div>
-        <div class="exercise-sets">
-            ${exercise.sets?.map(set =>
-        `<p>${set.weight} кг × ${set.reps} повторений${set.perLimb ? ' (на каждую конечность)' : ''}</p>`
-    ).join('') || ''}
-        </div>
-    `;
-    return exerciseEl;
-}
-
 function setupEntryEventHandlers(dataManager) {
     document.querySelectorAll('.edit-btn').forEach(btn => {
         btn.addEventListener('click', function() {
@@ -168,50 +141,51 @@ function setupEntryEventHandlers(dataManager) {
     });
 }
 
+function createTrainingEntryElement(entry) {
+    const exercise = entry.data;
+    const exerciseEl = document.createElement('div');
+    exerciseEl.className = 'history-exercise';
+
+    // Форматируем подходы
+    let setsHtml = '';
+    if (Array.isArray(exercise.sets)) {
+        setsHtml = exercise.sets.map(set =>
+            `<p>${set.weight} кг × ${set.reps} повт.${set.perLimb ? ' (на конечность)' : ''}</p>`
+        ).join('');
+    }
+
+    exerciseEl.innerHTML = `
+        <div class="entry-header">
+            <span>${exercise.name}</span>
+            <div class="entry-actions">
+                <button class="edit-btn" 
+                        data-type="training" 
+                        data-date="${entry.date}" 
+                        data-id="${entry.id}">✏️</button>
+                <button class="delete-btn" 
+                        data-type="training" 
+                        data-date="${entry.date}" 
+                        data-id="${entry.id}">🗑️</button>
+            </div>
+        </div>
+        <div class="exercise-sets">${setsHtml}</div>
+    `;
+    return exerciseEl;
+}
+
 export function editEntry(type, date, id, dataManager) {
     const entry = dataManager.getAllEntries().find(e => e.id == id);
     if (!entry) return;
 
-    if (type === 'diary') {
-        activateTab('daily');
-
-        // Устанавливаем дату и загружаем данные
-        const dateInput = document.getElementById('entry-date');
-        if (dateInput) {
-            dateInput.value = date;
-            const event = new Event('change', { bubbles: true });
-            dateInput.dispatchEvent(event);
-        }
-
-        // Заполняем форму после небольшой задержки
-        setTimeout(() => {
-            const form = document.getElementById('daily-form');
-            if (form) {
-                form.dataset.editingId = id;
-                populateForm(entry.data);
-
-                const timeInput = document.getElementById('entry-time');
-                if (timeInput && entry.data.time) {
-                    timeInput.value = entry.data.time;
-                }
-            }
-        }, 100);
-    }
-    else if (type === 'training') {
+    if (type === 'training') {
         activateTab('workout');
-        populateWorkoutForm(entry.data);
+
+        // Важно: передаем полную запись, а не только данные
+        populateWorkoutForm(entry);
 
         const workoutForm = document.getElementById('workout-form');
         if (workoutForm) {
-            workoutForm.dataset.editingId = id;
+            workoutForm.dataset.editing = `${date}|${id}`;
         }
     }
-}
-
-// Удаление записи
-function deleteEntry(type, date, id, dataManager) {
-    dataManager.deleteEntry(id);
-
-    // Перезагружаем историю через небольшой таймаут
-    setTimeout(() => loadHistoryData(dataManager), 100);
 }

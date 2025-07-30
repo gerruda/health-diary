@@ -6,7 +6,6 @@ import { initAnalytics } from './analytics.js';
 import { initSettings } from './settings.js';
 import { initExport } from './export.js';
 import { initTabs } from './utils.js';
-import { cleanupExercisesList, cleanupWorkoutHistory, migrateData } from "./storage.js";
 import { initTheme } from './theme.js';
 
 function formatDate(date, options) {
@@ -18,9 +17,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const dataManager = new DataManager();
 
     initTabs();
-    migrateData();
-    cleanupWorkoutHistory();
-    cleanupExercisesList();
 
     // Регистрация Service Worker
     if ('serviceWorker' in navigator) {
@@ -81,15 +77,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-        initSettings();
-    } catch (e) {
-        console.error('Ошибка инициализации настроек:', e);
-    }
-
-    try {
         initExport(dataManager); // И в экспорт
     } catch (e) {
         console.error('Ошибка инициализации экспорта:', e);
+    }
+
+    try {
+        initSettings();
+    } catch (e) {
+        console.error('Ошибка инициализации настроек:', e);
     }
 
     try {

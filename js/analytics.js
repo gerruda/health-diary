@@ -1,6 +1,10 @@
-import { getHealthData, getWorkoutHistory, getExerciseMetrics, saveExerciseMetrics } from './storage.js';
+import { getExerciseMetrics, saveExerciseMetrics } from './storage.js';
 
-export function initAnalytics() {
+let dataManagerInstance;
+let exerciseChart = null;
+
+export function initAnalytics(dataManager) {
+    dataManagerInstance = dataManager;
     initWeightChart();
     initSleepChart();
     initEnergyChart();
@@ -28,7 +32,6 @@ export function initAnalytics() {
     });
 }
 
-// Новая функция для обновления подсказок
 function updateMetricHints() {
     const selectedMetric = document.querySelector('input[name="exercise-metric"]:checked')?.value || 'orm';
     const hints = document.querySelectorAll('.metric-hints > div');
@@ -43,14 +46,29 @@ function updateMetricHints() {
     }
 }
 
-// Обновленная функция prepareExerciseData
 function prepareExerciseData(exerciseName) {
-    const workoutHistory = getWorkoutHistory();
     const metricType = getExerciseMetrics().selectedMetric || 'orm';
     const result = [];
 
-    for (const date in workoutHistory) {
-        workoutHistory[date].forEach(exercise => {
+    // Получаем все тренировки
+    const trainingEntries = dataManagerInstance.getAllEntries()
+        .filter(entry =>
+            entry.type === 'training' &&
+            !entry.isDraft
+        );
+
+    // Группируем по дате
+    const groupedByDate = {};
+    trainingEntries.forEach(entry => {
+        if (!groupedByDate[entry.date]) {
+            groupedByDate[entry.date] = [];
+        }
+        groupedByDate[entry.date].push(entry.data);
+    });
+
+    // Обрабатываем каждую дату
+    for (const date in groupedByDate) {
+        groupedByDate[date].forEach(exercise => {
             // Проверяем совпадение названия упражнения
             const isNameMatch = exercise.name &&
                 exercise.name.trim().toLowerCase() === exerciseName.trim().toLowerCase();
@@ -111,7 +129,6 @@ function prepareExerciseData(exerciseName) {
     };
 }
 
-// Обновленная функция initExerciseChart
 function initExerciseChart() {
     const ctx = document.getElementById('exercise-chart');
     if (!ctx) return;
@@ -227,7 +244,6 @@ function initExerciseChart() {
     });
 }
 
-// Вспомогательные функции для метрик
 function getMetricLabel(metricType, exerciseName) {
     const labels = {
         'orm': `1ПМ ${exerciseName}`,
@@ -271,6 +287,7 @@ function initWeightChart() {
         }
         return dateStr;
     };
+
     // Создаем метки для оси X
     const labels = [...new Set([
         ...data.weights.map(item => item.x),
@@ -360,17 +377,32 @@ function initWeightChart() {
 }
 
 function prepareWeightData() {
-    const healthData = getHealthData();
     const weights = [];
     const workouts = [];
     const alcohol = [];
     let minWeight = Infinity;
 
+    // Получаем все записи дневника
+    const diaryEntries = dataManagerInstance.getAllEntries()
+        .filter(entry =>
+            entry.type === 'diary' &&
+            !entry.isDraft
+        );
+
+    // Группируем по дате
+    const groupedByDate = {};
+    diaryEntries.forEach(entry => {
+        if (!groupedByDate[entry.date]) {
+            groupedByDate[entry.date] = [];
+        }
+        groupedByDate[entry.date].push(entry.data);
+    });
+
     // Находим минимальный вес
-    for (const date in healthData) {
-        healthData[date].forEach(entry => {
-            if (entry.weighings) {
-                entry.weighings.forEach(weighing => {
+    for (const date in groupedByDate) {
+        groupedByDate[date].forEach(data => {
+            if (data.weighings) {
+                data.weighings.forEach(weighing => {
                     const weightVal = parseFloat(weighing.weight);
                     if (!isNaN(weightVal)) {
                         minWeight = Math.min(minWeight, weightVal);
@@ -383,16 +415,16 @@ function prepareWeightData() {
     if (minWeight === Infinity) minWeight = 50;
 
     // Собираем данные
-    for (const date in healthData) {
+    for (const date in groupedByDate) {
         let hasWorkout = false;
         let hasAlcohol = false;
         let weightEntry = null;
         let weightSum = 0;
         let weightCount = 0;
 
-        healthData[date].forEach(entry => {
-            if (entry.weighings) {
-                entry.weighings.forEach(weighing => {
+        groupedByDate[date].forEach(data => {
+            if (data.weighings) {
+                data.weighings.forEach(weighing => {
                     const weightVal = parseFloat(weighing.weight);
                     if (!isNaN(weightVal)) {
                         weightSum += weightVal;
@@ -401,11 +433,11 @@ function prepareWeightData() {
                 });
             }
 
-            if (entry.workout && entry.workout !== 'none') {
+            if (data.workout && data.workout !== 'none') {
                 hasWorkout = true;
             }
 
-            if (entry.alcohol && entry.alcohol.trim() !== '' && entry.alcohol !== 'no') {
+            if (data.alcohol && data.alcohol.trim() !== '' && data.alcohol !== 'no') {
                 hasAlcohol = true;
             }
         });
@@ -522,24 +554,40 @@ function initSleepChart() {
 }
 
 function prepareSleepData() {
-    const healthData = getHealthData();
     const result = [];
 
-    for (const date in healthData) {
+    // Получаем все записи дневника
+    const diaryEntries = dataManagerInstance.getAllEntries()
+        .filter(entry =>
+            entry.type === 'diary' &&
+            !entry.isDraft
+        );
+
+    // Группируем по дате
+    const groupedByDate = {};
+    diaryEntries.forEach(entry => {
+        if (!groupedByDate[entry.date]) {
+            groupedByDate[entry.date] = [];
+        }
+        groupedByDate[entry.date].push(entry.data);
+    });
+
+    // Обрабатываем каждую дату
+    for (const date in groupedByDate) {
         let totalSleepHours = 0;
         let sleepNote = '';
         let sleepCount = 0;
 
-        healthData[date].forEach(entry => {
-            if (entry.sleepDuration) {
-                const [hours, minutes] = entry.sleepDuration.split(':').map(Number);
+        groupedByDate[date].forEach(data => {
+            if (data.sleepDuration) {
+                const [hours, minutes] = data.sleepDuration.split(':').map(Number);
                 if (!isNaN(hours)) {
                     totalSleepHours += hours + (minutes || 0) / 60;
                     sleepCount++;
                 }
             }
-            if (entry.notes) {
-                sleepNote = entry.notes;
+            if (data.notes) {
+                sleepNote = data.notes;
             }
         });
 
@@ -665,24 +713,40 @@ function initEnergyChart() {
 }
 
 function prepareEnergyData() {
-    const healthData = getHealthData();
     const result = [];
 
-    for (const date in healthData) {
+    // Получаем все записи дневника
+    const diaryEntries = dataManagerInstance.getAllEntries()
+        .filter(entry =>
+            entry.type === 'diary' &&
+            !entry.isDraft
+        );
+
+    // Группируем по дате
+    const groupedByDate = {};
+    diaryEntries.forEach(entry => {
+        if (!groupedByDate[entry.date]) {
+            groupedByDate[entry.date] = [];
+        }
+        groupedByDate[entry.date].push(entry.data);
+    });
+
+    // Обрабатываем каждую дату
+    for (const date in groupedByDate) {
         let energySum = 0;
         let energyCount = 0;
         let energyNote = '';
 
-        healthData[date].forEach(entry => {
-            if (entry.energyLevel) {
-                const level = parseInt(entry.energyLevel);
+        groupedByDate[date].forEach(data => {
+            if (data.energyLevel) {
+                const level = parseInt(data.energyLevel);
                 if (!isNaN(level)) {
                     energySum += level;
                     energyCount++;
                 }
             }
-            if (entry.notes) {
-                energyNote = entry.notes;
+            if (data.notes) {
+                energyNote = data.notes;
             }
         });
 
@@ -706,9 +770,6 @@ function prepareEnergyData() {
     };
 }
 
-let exerciseChart = null;
-
-// Функция расчета одноповторного максимума
 function calculateOneRepMax(weight, reps) {
     if (weight <= 0 || reps <= 0) return 0;
 
@@ -720,27 +781,27 @@ function calculateOneRepMax(weight, reps) {
     return Math.round(oneRepMax * 10) / 10; // Округляем до 0.1
 }
 
-// Обновленная функция populateExerciseFilter
 function populateExerciseFilter() {
     const filter = document.getElementById('exercise-filter');
-    if (!filter) {
-        return;
-    }
+    if (!filter) return;
 
-    // Очищаем существующие опции
     filter.innerHTML = '<option value="">Выберите упражнение</option>';
 
-    const workoutHistory = getWorkoutHistory();
+    // Получаем все тренировки
+    const trainingEntries = dataManagerInstance.getAllEntries()
+        .filter(entry =>
+            entry.type === 'training' &&
+            !entry.isDraft
+        );
+
     const exercises = new Set();
 
     // Собираем уникальные упражнения
-    for (const date in workoutHistory) {
-        workoutHistory[date].forEach(exercise => {
-            if (exercise.name && exercise.name.trim() !== '') {
-                exercises.add(exercise.name);
-            }
-        });
-    }
+    trainingEntries.forEach(entry => {
+        if (entry.data.name && entry.data.name.trim() !== '') {
+            exercises.add(entry.data.name);
+        }
+    });
 
     // Сортируем и добавляем в список
     const sortedExercises = Array.from(exercises).sort();

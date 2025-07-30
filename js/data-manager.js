@@ -9,6 +9,7 @@ export default class DataManager extends EventEmitter {
         super();
         this._saveTimeout = null;
         this._migrateLegacyData();
+        this._migrateWorkoutHistory(); // Добавляем миграцию старых тренировок
     }
 
     // Миграция старых данных
@@ -50,6 +51,26 @@ export default class DataManager extends EventEmitter {
         }
     }
 
+    // Миграция старых данных тренировок
+    _migrateWorkoutHistory() {
+        const legacyTraining = localStorage.getItem('workoutHistory');
+        if (!legacyTraining) return;
+
+        try {
+            const workoutHistory = JSON.parse(legacyTraining);
+
+            for (const [date, exercises] of Object.entries(workoutHistory)) {
+                exercises.forEach(exercise => {
+                    this.saveEntry('training', date, exercise, false);
+                });
+            }
+
+            localStorage.removeItem('workoutHistory');
+        } catch (e) {
+            console.error('Workout history migration failed:', e);
+        }
+    }
+
     _createEntry(type, date, data, isDraft) {
         return {
             date,
@@ -61,15 +82,6 @@ export default class DataManager extends EventEmitter {
         };
     }
 
-    _saveData() {
-        clearTimeout(this._saveTimeout);
-        this._saveTimeout = setTimeout(() => {
-            const entries = this.getAllEntries();
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-            this.emit('data-saved');
-        }, 500);
-    }
-
     getAllEntries() {
         const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
         const drafts = JSON.parse(sessionStorage.getItem(DRAFTS_KEY) || '[]');
@@ -77,32 +89,46 @@ export default class DataManager extends EventEmitter {
     }
 
     saveEntry(type, date, data, isDraft = false) {
+        // Генерируем ID если нужно
         if (!data.id) {
             data.id = Date.now().toString();
         }
-        const entries = this.getAllEntries();
-        const newEntry = this._createEntry(type, date, data, isDraft);
 
-        // Проверяем, что дата в правильном формате
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-            console.error('Invalid date format:', date);
-            return;
+        const newEntry = {
+            id: data.id, // Используем ID из данных
+            type,
+            date,
+            data,
+            isDraft,
+            version: DATA_VERSION,
+            timestamp: Date.now()
+        };
+
+        const entries = this.getAllEntries();
+        const existingIndex = entries.findIndex(e =>
+            e.id === newEntry.id &&
+            e.isDraft === isDraft
+        );
+
+        let updatedEntries;
+        if (existingIndex !== -1) {
+            // Обновляем существующую запись
+            updatedEntries = [...entries];
+            updatedEntries[existingIndex] = newEntry;
+        } else {
+            // Добавляем новую запись
+            updatedEntries = [...entries, newEntry];
         }
 
-        // Удаляем старые записи того же типа и даты
-        const filtered = entries.filter(entry =>
-            !(entry.date === date && entry.type === type && entry.isDraft === isDraft)
-        );
+        // Разделяем на сохраненные и черновики
+        const saved = updatedEntries.filter(e => !e.isDraft);
+        const drafts = updatedEntries.filter(e => e.isDraft);
 
+        // Сохраняем
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+        sessionStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts));
 
-        const storage = isDraft ? sessionStorage : localStorage;
-        storage.setItem(
-            isDraft ? DRAFTS_KEY : STORAGE_KEY,
-            JSON.stringify([...filtered, newEntry])
-        );
-
-        this.emit('entry-updated', { type, date, data, isDraft });
-        this._saveData();
+        this.emit('entry-updated', newEntry);
     }
 
     deleteEntry(id) {

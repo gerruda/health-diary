@@ -1,4 +1,4 @@
-import { getSettings, saveSettings, getHealthData } from './storage.js';
+import { getSettings, saveSettings } from './storage.js';
 
 // Глобальная переменная для хранения таймера
 let reminderTimer = null;

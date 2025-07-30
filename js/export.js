@@ -1,5 +1,3 @@
-import { getHealthData, getWorkoutHistory } from './storage.js';
-
 export function initExport() {
     const exportSection = document.createElement('div');
     exportSection.id = 'export-controls';
