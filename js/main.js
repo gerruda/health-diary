@@ -2,7 +2,7 @@ import DataManager from './data-manager.js';
 import { initDailyTracker } from './daily-tracker.js';
 import { initWorkoutTracker } from './workout.js';
 import { initHistory } from './history.js';
-import { initAnalytics } from './analytics.js';
+import {initAnalytics, refreshAnalytics} from './analytics.js';
 import { initSettings } from './settings.js';
 import { initExport } from './export.js';
 import { initTabs } from './utils.js';
@@ -17,6 +17,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const dataManager = new DataManager();
 
     initTabs();
+    setTimeout(refreshAnalytics, 500);
+
 
     // Регистрация Service Worker
     if ('serviceWorker' in navigator) {

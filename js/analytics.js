@@ -31,6 +31,7 @@ export function initAnalytics(dataManager) {
             saveExerciseMetrics({ selectedMetric: metric });
             if (exerciseChart) {
                 exerciseChart.destroy();
+                exerciseChart = null;
             }
             initExerciseChart();
             updateMetricHints();
@@ -38,29 +39,18 @@ export function initAnalytics(dataManager) {
     });
 
     // Подписка на события обновления данных
-    dataManagerInstance.on('entry-updated', updateAllCharts);
-    dataManagerInstance.on('entry-deleted', updateAllCharts);
-    dataManagerInstance.on('entry-added', updateAllCharts);
+    dataManagerInstance.on('entry-updated', refreshAnalytics);
+    dataManagerInstance.on('entry-deleted', refreshAnalytics);
+    dataManagerInstance.on('entry-added', refreshAnalytics);
+
+    // Обновляем графики при открытии вкладки аналитики
+    document.getElementById('analytics').addEventListener('click', refreshAnalytics);
 }
 
-function updateAllCharts() {
+export function refreshAnalytics() {
     // Обновляем все графики
-    if (weightChartInstance) {
-        weightChartInstance.destroy();
-        weightChartInstance = null;
-    }
     initWeightChart();
-
-    if (sleepChartInstance) {
-        sleepChartInstance.destroy();
-        sleepChartInstance = null;
-    }
     initSleepChart();
-
-    if (energyChartInstance) {
-        energyChartInstance.destroy();
-        energyChartInstance = null;
-    }
     initEnergyChart();
 
     // Обновляем график упражнений
@@ -175,6 +165,12 @@ function initExerciseChart() {
     const ctx = document.getElementById('exercise-chart');
     if (!ctx) return;
 
+    // Удаляем предыдущее сообщение об ошибке
+    const prevError = ctx.nextElementSibling;
+    if (prevError && prevError.classList.contains('chart-error')) {
+        prevError.remove();
+    }
+
     const filter = document.getElementById('exercise-filter');
     if (!filter) return;
 
@@ -187,9 +183,13 @@ function initExerciseChart() {
         exerciseChart = null;
     }
 
-    // Если упражнение не выбрано, выходим
+    // Если упражнение не выбрано, показываем сообщение
     if (!exerciseName) {
         ctx.style.display = 'none';
+        const errorMsg = document.createElement('p');
+        errorMsg.className = 'chart-error';
+        errorMsg.textContent = 'Выберите упражнение из списка для построения графика';
+        ctx.parentNode.insertBefore(errorMsg, ctx.nextSibling);
         return;
     }
 
@@ -199,6 +199,10 @@ function initExerciseChart() {
     // Проверяем наличие данных
     if (data.dates.length < 1) {
         ctx.style.display = 'none';
+        const errorMsg = document.createElement('p');
+        errorMsg.className = 'chart-error';
+        errorMsg.textContent = 'Недостаточно данных для выбранного упражнения';
+        ctx.parentNode.insertBefore(errorMsg, ctx.nextSibling);
         return;
     }
 
@@ -310,17 +314,29 @@ function initWeightChart() {
     const ctx = document.getElementById('weight-chart');
     if (!ctx) return;
 
-    // Уничтожаем предыдущий график, если он существует
+    // Удаляем предыдущее сообщение об ошибке
+    const prevError = ctx.nextElementSibling;
+    if (prevError && prevError.classList.contains('chart-error')) {
+        prevError.remove();
+    }
+
+    // Уничтожаем предыдущий график
     if (weightChartInstance) {
         weightChartInstance.destroy();
         weightChartInstance = null;
     }
 
     const data = prepareWeightData();
+    // console.log("Weight chart data:", data); // Добавляем лог для отладки
 
     // Проверяем достаточно ли точек для построения графика
-    if (data.weights.length < 1) {
-        console.log("Недостаточно данных о весе для построения графика");
+    if (data.weights.length < 2) {
+        const errorMsg = document.createElement('p');
+        errorMsg.className = 'chart-error';
+        errorMsg.textContent = data.weights.length === 0
+            ? 'Нет данных о весе. Добавьте взвешивания в дневнике.'
+            : 'Недостаточно данных о весе. Требуется минимум 2 записи.';
+        ctx.parentNode.insertBefore(errorMsg, ctx.nextSibling);
         return;
     }
 
@@ -337,19 +353,26 @@ function initWeightChart() {
         return dateStr;
     };
 
-    // Создаем метки для оси X
-    const labels = [...new Set([
+    // Собираем все уникальные даты
+    const allDates = [...new Set([
         ...data.weights.map(item => item.x),
         ...data.workouts.map(item => item.x),
         ...data.alcohol.map(item => item.x)
-    ])].sort().map(formatDate);
+    ])].sort();
+
+    // Создаем метки для оси X
+    const labels = allDates.map(formatDate);
 
     // Создаем наборы данных
-    const weightValues = labels.map(label => {
-        const date = label.split('.').reverse().join('-');
+    const weightValues = allDates.map(date => {
         const entry = data.weights.find(item => item.x === date);
         return entry ? entry.y : null;
     });
+
+    // Находим min/max для масштабирования оси Y
+    const weightValuesFiltered = weightValues.filter(v => v !== null);
+    const minY = Math.min(...weightValuesFiltered) - 2;
+    const maxY = Math.max(...weightValuesFiltered) + 2;
 
     weightChartInstance = new Chart(ctx.getContext('2d'), {
         type: 'line',
@@ -367,7 +390,7 @@ function initWeightChart() {
                     pointHoverRadius: 8,
                     pointBackgroundColor: (ctx) => {
                         const index = ctx.dataIndex;
-                        const date = labels[index].split('.').reverse().join('-');
+                        const date = allDates[index];
                         const hasWorkout = data.workouts.some(item => item.x === date);
                         const hasAlcohol = data.alcohol.some(item => item.x === date);
 
@@ -388,7 +411,8 @@ function initWeightChart() {
                     }
                 },
                 y: {
-                    beginAtZero: false,
+                    min: minY,
+                    max: maxY,
                     grid: {
                         color: gridColor
                     }
@@ -404,9 +428,12 @@ function initWeightChart() {
                 },
                 tooltip: {
                     callbacks: {
+                        title: (tooltipItems) => {
+                            return allDates[tooltipItems[0].dataIndex];
+                        },
                         beforeBody: (tooltipItems) => {
                             const index = tooltipItems[0].dataIndex;
-                            const date = labels[index].split('.').reverse().join('-');
+                            const date = allDates[index];
                             const hasWorkout = data.workouts.some(item => item.x === date);
                             const hasAlcohol = data.alcohol.some(item => item.x === date);
 
@@ -520,7 +547,13 @@ function initSleepChart() {
     const ctx = document.getElementById('sleep-chart');
     if (!ctx) return;
 
-    // Уничтожаем предыдущий график, если он существует
+    // Удаляем предыдущее сообщение об ошибке
+    const prevError = ctx.nextElementSibling;
+    if (prevError && prevError.classList.contains('chart-error')) {
+        prevError.remove();
+    }
+
+    // Уничтожаем предыдущий график
     if (sleepChartInstance) {
         sleepChartInstance.destroy();
         sleepChartInstance = null;
@@ -529,8 +562,11 @@ function initSleepChart() {
     const data = prepareSleepData();
 
     // Проверяем достаточно ли точек для построения графика
-    if (data.dates.length < 1) {
-        console.log("Недостаточно данных о сне для построения графика");
+    if (data.dates.length < 2) {
+        const errorMsg = document.createElement('p');
+        errorMsg.className = 'chart-error';
+        errorMsg.textContent = 'Недостаточно данных о сне. Требуется минимум 2 записи.';
+        ctx.parentNode.insertBefore(errorMsg, ctx.nextSibling);
         return;
     }
 
@@ -665,7 +701,13 @@ function initEnergyChart() {
     const ctx = document.getElementById('energy-chart');
     if (!ctx) return;
 
-    // Уничтожаем предыдущий график, если он существует
+    // Удаляем предыдущее сообщение об ошибке
+    const prevError = ctx.nextElementSibling;
+    if (prevError && prevError.classList.contains('chart-error')) {
+        prevError.remove();
+    }
+
+    // Уничтожаем предыдущий график
     if (energyChartInstance) {
         energyChartInstance.destroy();
         energyChartInstance = null;
@@ -674,8 +716,11 @@ function initEnergyChart() {
     const data = prepareEnergyData();
 
     // Проверяем достаточно ли точек для построения графика
-    if (data.dates.length < 1) {
-        console.log("Недостаточно данных об энергии для построения графика");
+    if (data.dates.length < 2) {
+        const errorMsg = document.createElement('p');
+        errorMsg.className = 'chart-error';
+        errorMsg.textContent = 'Недостаточно данных об энергии. Требуется минимум 2 записи.';
+        ctx.parentNode.insertBefore(errorMsg, ctx.nextSibling);
         return;
     }
 
@@ -871,7 +916,10 @@ function populateExerciseFilter() {
 
     // Обработчик изменения
     filter.addEventListener('change', () => {
-        if (exerciseChart) exerciseChart.destroy();
+        if (exerciseChart) {
+            exerciseChart.destroy();
+            exerciseChart = null;
+        }
         initExerciseChart();
     });
 }

@@ -720,3 +720,12 @@ button:hover {
         min-width: 140px;
     }
 }
+
+.chart-error {
+    color: #e74c3c;
+    padding: 10px;
+    background: #f8d7da;
+    border-radius: 5px;
+    margin-top: 10px;
+    text-align: center;
+}
