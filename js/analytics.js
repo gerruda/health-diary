@@ -2,9 +2,14 @@ import { getExerciseMetrics, saveExerciseMetrics } from './storage.js';
 
 let dataManagerInstance;
 let exerciseChart = null;
+let weightChartInstance = null;
+let sleepChartInstance = null;
+let energyChartInstance = null;
 
 export function initAnalytics(dataManager) {
     dataManagerInstance = dataManager;
+
+    // Инициализация графиков
     initWeightChart();
     initSleepChart();
     initEnergyChart();
@@ -12,6 +17,7 @@ export function initAnalytics(dataManager) {
     updateMetricHints();
     initExerciseChart();
 
+    // Установка выбранной метрики
     const metrics = getExerciseMetrics();
     const metricRadio = document.querySelector(`input[name="exercise-metric"][value="${metrics.selectedMetric}"]`);
     if (metricRadio) {
@@ -30,6 +36,42 @@ export function initAnalytics(dataManager) {
             updateMetricHints();
         });
     });
+
+    // Подписка на события обновления данных
+    dataManagerInstance.on('entry-updated', updateAllCharts);
+    dataManagerInstance.on('entry-deleted', updateAllCharts);
+    dataManagerInstance.on('entry-added', updateAllCharts);
+}
+
+function updateAllCharts() {
+    // Обновляем все графики
+    if (weightChartInstance) {
+        weightChartInstance.destroy();
+        weightChartInstance = null;
+    }
+    initWeightChart();
+
+    if (sleepChartInstance) {
+        sleepChartInstance.destroy();
+        sleepChartInstance = null;
+    }
+    initSleepChart();
+
+    if (energyChartInstance) {
+        energyChartInstance.destroy();
+        energyChartInstance = null;
+    }
+    initEnergyChart();
+
+    // Обновляем график упражнений
+    if (exerciseChart) {
+        exerciseChart.destroy();
+        exerciseChart = null;
+    }
+    initExerciseChart();
+
+    // Обновляем фильтр упражнений
+    populateExerciseFilter();
 }
 
 function updateMetricHints() {
@@ -268,10 +310,17 @@ function initWeightChart() {
     const ctx = document.getElementById('weight-chart');
     if (!ctx) return;
 
+    // Уничтожаем предыдущий график, если он существует
+    if (weightChartInstance) {
+        weightChartInstance.destroy();
+        weightChartInstance = null;
+    }
+
     const data = prepareWeightData();
 
     // Проверяем достаточно ли точек для построения графика
-    if (data.weights.length < 2) {
+    if (data.weights.length < 1) {
+        console.log("Недостаточно данных о весе для построения графика");
         return;
     }
 
@@ -283,7 +332,7 @@ function initWeightChart() {
         if (!dateStr) return '';
         const parts = dateStr.split('-');
         if (parts.length === 3) {
-            return `${parts[2]}.${parts[1]}.${parts[0]}`;
+            return `${parts[2]}.${parts[1]}`;
         }
         return dateStr;
     };
@@ -302,7 +351,7 @@ function initWeightChart() {
         return entry ? entry.y : null;
     });
 
-    new Chart(ctx.getContext('2d'), {
+    weightChartInstance = new Chart(ctx.getContext('2d'), {
         type: 'line',
         data: {
             labels: labels,
@@ -471,10 +520,17 @@ function initSleepChart() {
     const ctx = document.getElementById('sleep-chart');
     if (!ctx) return;
 
+    // Уничтожаем предыдущий график, если он существует
+    if (sleepChartInstance) {
+        sleepChartInstance.destroy();
+        sleepChartInstance = null;
+    }
+
     const data = prepareSleepData();
 
     // Проверяем достаточно ли точек для построения графика
-    if (data.dates.length < 2) {
+    if (data.dates.length < 1) {
+        console.log("Недостаточно данных о сне для построения графика");
         return;
     }
 
@@ -492,7 +548,7 @@ function initSleepChart() {
         return dateStr;
     };
 
-    new Chart(ctx.getContext('2d'), {
+    sleepChartInstance = new Chart(ctx.getContext('2d'), {
         type: 'bar',
         data: {
             labels: data.dates.map(formatDate),
@@ -609,10 +665,17 @@ function initEnergyChart() {
     const ctx = document.getElementById('energy-chart');
     if (!ctx) return;
 
+    // Уничтожаем предыдущий график, если он существует
+    if (energyChartInstance) {
+        energyChartInstance.destroy();
+        energyChartInstance = null;
+    }
+
     const data = prepareEnergyData();
 
     // Проверяем достаточно ли точек для построения графика
-    if (data.dates.length < 2) {
+    if (data.dates.length < 1) {
+        console.log("Недостаточно данных об энергии для построения графика");
         return;
     }
 
@@ -630,7 +693,7 @@ function initEnergyChart() {
         return dateStr;
     };
 
-    new Chart(ctx.getContext('2d'), {
+    energyChartInstance = new Chart(ctx.getContext('2d'), {
         type: 'line',
         data: {
             labels: data.dates.map(formatDate),
