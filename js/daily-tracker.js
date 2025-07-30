@@ -5,16 +5,17 @@ let isFormChanged = false;
 let currentDate = '';
 let lastChangeTimestamp = 0;
 let saveTimer = null;
-let dataManagerInstance; // Исправлено имя переменной
+let dataManagerInstance;
 
 export function initDailyTracker(dataManager) {
     initWeightConditionsList();
 
-    dataManagerInstance = dataManager; // Сохраняем экземпляр DataManager
+    dataManagerInstance = dataManager;
 
     const dailyForm = document.getElementById('daily-form');
     if (!dailyForm) return;
 
+    // Создаем скрытое поле для времени, если его нет
     let timeInput = document.getElementById('entry-time');
     if (!timeInput) {
         timeInput = document.createElement('input');
@@ -36,7 +37,7 @@ export function initDailyTracker(dataManager) {
     dateInput.parentNode.insertBefore(dateContainer, dateInput);
     dateContainer.appendChild(dateInput);
 
-    // Создаем кнопку выбора даты
+    // Кнопка выбора даты
     const datePickerBtn = document.createElement('button');
     datePickerBtn.innerHTML = '📅';
     datePickerBtn.type = 'button';
@@ -51,10 +52,8 @@ export function initDailyTracker(dataManager) {
     todayButton.className = 'btn-today';
     dateContainer.appendChild(todayButton);
 
-    // Обработчик для кнопки выбора даты
-    datePickerBtn.addEventListener('click', () => {
-        dateInput.showPicker(); // Открывает нативный date picker
-    });
+    // Обработчики событий
+    datePickerBtn.addEventListener('click', () => dateInput.showPicker());
 
     todayButton.addEventListener('click', () => {
         saveDraft(currentDate);
@@ -143,6 +142,10 @@ function markFormChanged() {
 }
 
 function saveDraft(date) {
+    // Сохраняем черновик только для сегодняшней даты
+    const today = new Date().toISOString().split('T')[0];
+    if (date !== today) return;
+
     if (!isFormChanged) return;
 
     const draft = {
@@ -273,33 +276,44 @@ export function loadTodayData(date) {
     const timeInput = document.getElementById('entry-time');
     const form = document.getElementById('daily-form');
 
+    // Если форма находится в режиме редактирования истории, пропускаем загрузку
+    if (form.dataset.editingHistory === 'true') {
+        return;
+    }
+
     // Удаляем старые черновики (старше 1 дня)
     const allEntries = dataManagerInstance.getAllEntries();
     const now = Date.now();
     allEntries.forEach(entry => {
-        if (entry.isDraft && now - entry.timestamp > 86400000) { // 24 часа
+        if (entry.isDraft && now - entry.timestamp > 86400000) {
             dataManagerInstance.deleteEntry(entry.id);
         }
     });
 
-    // Поиск актуального черновика
-    const drafts = dataManagerInstance.getAllEntries().filter(
-        e => e.isDraft && e.type === 'diary' && e.date === date
-    );
+    // Определяем, сегодня ли это дата
+    const today = new Date().toISOString().split('T')[0];
+    const isToday = date === today;
 
-    if (drafts.length > 0) {
-        // Берем последний черновик
-        const latestDraft = drafts.reduce((latest, current) =>
-            current.timestamp > latest.timestamp ? current : latest
+    // Для сегодняшней даты: загружаем черновик или сохраненную запись
+    if (isToday) {
+        // Поиск актуального черновика
+        const drafts = dataManagerInstance.getAllEntries().filter(
+            e => e.isDraft && e.type === 'diary' && e.date === date
         );
 
-        populateForm(latestDraft.data);
-        form.dataset.editingId = latestDraft.id;
-        console.log('Загружен черновик для', date);
-        return;
+        if (drafts.length > 0) {
+            // Берем последний черновик
+            const latestDraft = drafts.reduce((latest, current) =>
+                current.timestamp > latest.timestamp ? current : latest
+            );
+
+            populateForm(latestDraft.data);
+            form.dataset.editingId = latestDraft.id;
+            return;
+        }
     }
 
-    // Поиск сохраненных записей
+    // Поиск сохраненных записей (для любой даты)
     const savedEntries = dataManagerInstance.getAllEntries().filter(
         e => !e.isDraft && e.type === 'diary' && e.date === date
     );
@@ -333,6 +347,31 @@ function initRPEVisibility() {
     }
 }
 
+export function populateDiaryForm(entry) {
+    const form = document.getElementById('daily-form');
+    if (!form) return;
+
+    // Устанавливаем флаг редактирования истории
+    form.dataset.editingHistory = 'true';
+
+    // Устанавливаем дату записи
+    const dateInput = document.getElementById('entry-date');
+    if (dateInput) {
+        dateInput.value = entry.date;
+        currentDate = entry.date;
+    }
+
+    // Заполняем форму данными из записи
+    populateForm(entry.data);
+
+    // Устанавливаем ID редактируемой записи
+    form.dataset.editingId = entry.id;
+
+    // Сбрасываем флаг изменений
+    isFormChanged = false;
+    form.classList.remove('unsaved-changes');
+}
+
 export function populateForm(data) {
     const setValue = (id, value) => {
         const element = document.getElementById(id);
@@ -346,8 +385,17 @@ export function populateForm(data) {
     }
 
     setValue('pulse', data.pulse);
-    setValue('sleep-hours', data.sleepDuration ? data.sleepDuration.split(':')[0] : '');
-    setValue('sleep-minutes', data.sleepDuration ? data.sleepDuration.split(':')[1] : '');
+
+    // Обработка продолжительности сна
+    if (data.sleepDuration) {
+        const [hours, minutes] = data.sleepDuration.split(':');
+        setValue('sleep-hours', hours);
+        setValue('sleep-minutes', minutes);
+    } else {
+        setValue('sleep-hours', '7');
+        setValue('sleep-minutes', '30');
+    }
+
     setValue('steps', data.steps);
     setValue('calories', data.calories);
     setValue('alcohol', data.alcohol);
@@ -371,6 +419,9 @@ export function populateForm(data) {
     } else {
         addWeightEntry();
     }
+
+    // Обновляем видимость RPE
+    initRPEVisibility();
 }
 
 function handleDailySubmit(e, date) {
@@ -447,7 +498,9 @@ function handleDailySubmit(e, date) {
     dataManagerInstance.deleteDraft(date);
 
     // Сбрасываем состояние формы
-    delete document.getElementById('daily-form').dataset.editingId;
+    const form = document.getElementById('daily-form');
+    delete form.dataset.editingId;
+    delete form.dataset.editingHistory;
     alert('Данные сохранены!');
 
     // Обновляем историю

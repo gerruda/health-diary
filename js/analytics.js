@@ -389,88 +389,82 @@ function prepareWeightData() {
             !entry.isDraft
         );
 
-    // Группируем по дате
-    const groupedByDate = {};
+    // Создаем объект для группировки по дате
+    const dateMap = {};
+
     diaryEntries.forEach(entry => {
-        if (!groupedByDate[entry.date]) {
-            groupedByDate[entry.date] = [];
+        const date = entry.date;
+        if (!dateMap[date]) {
+            dateMap[date] = {
+                weights: [],
+                hasWorkout: false,
+                hasAlcohol: false
+            };
         }
-        groupedByDate[entry.date].push(entry.data);
+
+        const dateData = dateMap[date];
+
+        // Обработка взвешиваний
+        if (entry.data.weighings && Array.isArray(entry.data.weighings)) {
+            entry.data.weighings.forEach(weighing => {
+                const weightVal = parseFloat(weighing.weight);
+                if (!isNaN(weightVal)) {
+                    dateData.weights.push(weightVal);
+                    minWeight = Math.min(minWeight, weightVal);
+                }
+            });
+        }
+        // Для совместимости со старым форматом данных
+        else if (entry.data.weight) {
+            const weightVal = parseFloat(entry.data.weight);
+            if (!isNaN(weightVal)) {
+                dateData.weights.push(weightVal);
+                minWeight = Math.min(minWeight, weightVal);
+            }
+        }
+
+        // Отметки о тренировке
+        if (entry.data.workout && entry.data.workout !== 'none') {
+            dateData.hasWorkout = true;
+        }
+
+        // Отметки об алкоголе
+        if (entry.data.alcohol &&
+            entry.data.alcohol.trim() !== '' &&
+            entry.data.alcohol !== 'no') {
+            dateData.hasAlcohol = true;
+        }
     });
 
-    // Находим минимальный вес
-    for (const date in groupedByDate) {
-        groupedByDate[date].forEach(data => {
-            if (data.weighings) {
-                data.weighings.forEach(weighing => {
-                    const weightVal = parseFloat(weighing.weight);
-                    if (!isNaN(weightVal)) {
-                        minWeight = Math.min(minWeight, weightVal);
-                    }
-                });
-            }
-        });
-    }
-
+    // Если нет данных о весе, устанавливаем минимальный вес по умолчанию
     if (minWeight === Infinity) minWeight = 50;
 
-    // Собираем данные
-    for (const date in groupedByDate) {
-        let hasWorkout = false;
-        let hasAlcohol = false;
-        let weightEntry = null;
-        let weightSum = 0;
-        let weightCount = 0;
-
-        groupedByDate[date].forEach(data => {
-            if (data.weighings) {
-                data.weighings.forEach(weighing => {
-                    const weightVal = parseFloat(weighing.weight);
-                    if (!isNaN(weightVal)) {
-                        weightSum += weightVal;
-                        weightCount++;
-                    }
-                });
-            }
-
-            if (data.workout && data.workout !== 'none') {
-                hasWorkout = true;
-            }
-
-            if (data.alcohol && data.alcohol.trim() !== '' && data.alcohol !== 'no') {
-                hasAlcohol = true;
-            }
-        });
-
-        if (weightCount > 0) {
-            const avgWeight = weightSum / weightCount;
-            weightEntry = {
+    // Формируем итоговые данные
+    Object.entries(dateMap).forEach(([date, data]) => {
+        // Добавляем вес
+        if (data.weights.length > 0) {
+            const avgWeight = data.weights.reduce((sum, w) => sum + w, 0) / data.weights.length;
+            weights.push({
                 x: date,
                 y: parseFloat(avgWeight.toFixed(1))
-            };
-            weights.push(weightEntry);
-        }
-
-        if (hasWorkout) {
-            workouts.push({
-                x: date,
-                y: minWeight - 1
             });
         }
-        if (hasAlcohol) {
-            alcohol.push({
-                x: date,
-                y: minWeight - 2
-            });
-        }
-    }
 
-    // Сортируем по дате
+        // Добавляем отметки о событиях
+        if (data.hasWorkout) {
+            workouts.push({ x: date, y: minWeight - 1 });
+        }
+        if (data.hasAlcohol) {
+            alcohol.push({ x: date, y: minWeight - 2 });
+        }
+    });
+
+    // Сортировка по дате
     weights.sort((a, b) => a.x.localeCompare(b.x));
     workouts.sort((a, b) => a.x.localeCompare(b.x));
     alcohol.sort((a, b) => a.x.localeCompare(b.x));
 
-    return {weights, workouts, alcohol};
+    return { weights, workouts, alcohol };
 }
 
 function initSleepChart() {

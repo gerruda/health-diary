@@ -1,5 +1,6 @@
 import { formatDate, activateTab, confirmAction } from './utils.js';
 import { populateWorkoutForm } from './workout.js';
+import { populateDiaryForm } from './daily-tracker.js'; // Исправлен импорт
 
 export function initHistory(dataManager) {
     loadHistoryData(dataManager);
@@ -179,13 +180,19 @@ export function editEntry(type, date, id, dataManager) {
 
     if (type === 'training') {
         activateTab('workout');
-
-        // Важно: передаем полную запись, а не только данные
         populateWorkoutForm(entry);
-
         const workoutForm = document.getElementById('workout-form');
         if (workoutForm) {
             workoutForm.dataset.editing = `${date}|${id}`;
+        }
+    }
+    // Добавлена обработка для записей дневника
+    else if (type === 'diary') {
+        activateTab('daily');
+        populateDiaryForm(entry); // Используем правильную функцию
+        const diaryForm = document.getElementById('diary-form');
+        if (diaryForm) {
+            diaryForm.dataset.editing = id;
         }
     }
 }
