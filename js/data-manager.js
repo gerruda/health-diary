@@ -10,6 +10,23 @@ export default class DataManager extends EventEmitter {
         this._saveTimeout = null;
         this._migrateLegacyData();
         this._migrateWorkoutHistory(); // Добавляем миграцию старых тренировок
+        this.load();
+    }
+
+    load() {
+        try {
+            const storedData = localStorage.getItem(STORAGE_KEY);
+            if (storedData) {
+                this.entries = JSON.parse(storedData) || [];
+            }
+        } catch (e) {
+            console.error("Ошибка загрузки данных:", e);
+            this.entries = [];
+        }
+    }
+
+    save() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.entries));
     }
 
     // Миграция старых данных
@@ -152,6 +169,44 @@ export default class DataManager extends EventEmitter {
         const filtered = drafts.filter(entry => !(entry.date === date && entry.isDraft));
         sessionStorage.setItem(DRAFTS_KEY, JSON.stringify(filtered));
         this.emit('draft-deleted', date);
+    }
+
+    getEntry(id) {
+        if (!id) return null;
+        return this.entries.find(entry => entry.id === id);
+    }
+
+    addEntry(entry) {
+        // Генерируем ID если отсутствует
+        if (!entry.id) {
+            entry.id = Date.now().toString() + Math.random().toString(36).substr(2, 5);
+        }
+
+        // Проверяем инициализирован ли массив
+        if (!Array.isArray(this.entries)) {
+            console.warn("this.entries is not array. Initializing new array.");
+            this.entries = [];
+        }
+
+        this.entries.push(entry);
+        this.save();
+        return entry.id;
+    }
+
+    updateEntry(id, newData) {
+        if (!id) return false;
+
+        const index = this.entries.findIndex(entry => entry.id === id);
+        if (index !== -1) {
+            this.entries[index] = {
+                ...this.entries[index],
+                ...newData,
+                id // Сохраняем оригинальный ID
+            };
+            this.save();
+            return true;
+        }
+        return false;
     }
 
     bulkAddEntries(entries) {

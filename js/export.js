@@ -64,35 +64,11 @@ export function initExport(dataManager) {
     document.getElementById('import-file')?.addEventListener('change', (e) =>
         handleFileImport(e, dataManager)
     );
+
+    return exportSection;
 }
 
-export function initHistory(dataManager) {
-    loadHistoryData(dataManager);
-
-    // Обработчики для элементов экспорта
-    document.getElementById('export-range')?.addEventListener('change', () =>
-        loadHistoryData(dataManager)
-    );
-
-    document.getElementById('start-date')?.addEventListener('change', () =>
-        loadHistoryData(dataManager)
-    );
-
-    document.getElementById('end-date')?.addEventListener('change', () =>
-        loadHistoryData(dataManager)
-    );
-
-    // Обработчики для обновлений данных
-    dataManager.on('entry-updated', () => loadHistoryData(dataManager));
-    dataManager.on('entry-deleted', () => loadHistoryData(dataManager));
-}
-
-//     if (historyTab) {
-//         historyTab.appendChild(exportSection);
-//     }
-// }
-
-function exportToExcel() {
+function exportToExcel(dataManager) {
     if (typeof XLSX === 'undefined') {
         alert('Библиотека экспорта не загружена. Обновите страницу.');
         return;
@@ -104,10 +80,10 @@ function exportToExcel() {
     let data, fileName;
 
     if (type === 'health') {
-        data = prepareHealthData(range);
+        data = prepareHealthData(dataManager, range);
         fileName = "health_diary_export";
     } else {
-        data = prepareWorkoutData(range);
+        data = prepareWorkoutData(dataManager, range);
         fileName = "workout_export";
     }
 
@@ -162,114 +138,140 @@ function getDateRange(range) {
     return { startDate, endDate };
 }
 
-function prepareHealthData(range) {
-    const healthData = getHealthData();
+function prepareHealthData(dataManager, range) {
     const dateRange = getDateRange(range);
     if (!dateRange) return [];
 
     const { startDate, endDate } = dateRange;
     const exportData = [];
 
-    for (const date in healthData) {
-        const currentDate = new Date(date);
-        if (currentDate >= startDate && currentDate <= endDate) {
-            healthData[date].forEach(entry => {
-                // Форматируем взвешивания
-                let weighingsText = '';
-                if (entry.weighings && entry.weighings.length > 0) {
-                    weighingsText = entry.weighings.map(w =>
-                        `${w.weight} кг${w.condition ? ` (${w.condition})` : ''}`
-                    ).join('; ');
-                } else if (entry.weight) {
-                    // Совместимость со старым форматом
-                    weighingsText = `${entry.weight} кг${entry.weightCondition ? ` (${entry.weightCondition})` : ''}`;
-                }
+    // Получаем все записи через DataManager
+    const allEntries = dataManager.getAllEntries();
 
-                // Создаем одну запись за день
-                exportData.push({
-                    Дата: date,
-                    Пульс: entry.pulse || '',
-                    Сон: entry.sleepDuration || '',
-                    'Уровень энергии': entry.energyLevel || '',
-                    'Взвешивания': weighingsText,
-                    Шаги: entry.steps || '',
-                    Калории: entry.calories || '',
-                    Алкоголь: entry.alcohol || '',
-                    Тренировка: entry.workout || '',
-                    RPE: entry.rpe || '',
-                    Настроение: entry.mood || '',
-                    Заметки: entry.notes || ''
-                });
-            });
+    // Фильтруем записи по типу и дате
+    const filteredEntries = allEntries.filter(entry => {
+        if (entry.type !== 'diary' || entry.isDraft) return false;
+
+        const entryDate = new Date(entry.date);
+        return entryDate >= startDate && entryDate <= endDate;
+    });
+
+    // Формируем данные для экспорта
+    filteredEntries.forEach(entry => {
+        const data = entry.data;
+
+        // Форматируем взвешивания
+        let weighingsText = '';
+        if (data.weighings && data.weighings.length > 0) {
+            weighingsText = data.weighings.map(w =>
+                `${w.weight} кг${w.condition ? ` (${w.condition})` : ''}`
+            ).join('; ');
+        } else if (data.weight) {
+            weighingsText = `${data.weight} кг${data.weightCondition ? ` (${data.weightCondition})` : ''}`;
         }
-    }
+
+        // Форматируем сон
+        let sleepDuration = '';
+        if (data.sleepHours || data.sleepMinutes) {
+            sleepDuration = `${data.sleepHours || 0}ч ${data.sleepMinutes || 0}м`;
+        } else if (data.sleepDuration) {
+            sleepDuration = data.sleepDuration;
+        }
+
+        // Создаем запись для экспорта
+        exportData.push({
+            Дата: entry.date,
+            Пульс: data.pulse || '',
+            Сон: sleepDuration,
+            'Уровень энергии': data.energyLevel || '',
+            'Взвешивания': weighingsText,
+            Шаги: data.steps || '',
+            Калории: data.calories || '',
+            Алкоголь: data.alcohol || '',
+            Тренировка: data.workout || '',
+            RPE: data.rpe || '',
+            Настроение: data.mood || '',
+            Заметки: data.notes || ''
+        });
+    });
 
     return exportData;
 }
 
-function prepareWorkoutData(range) {
-    const workoutHistory = getWorkoutHistory();
+function prepareWorkoutData(dataManager, range) {
     const dateRange = getDateRange(range);
     if (!dateRange) return [];
 
     const { startDate, endDate } = dateRange;
     const exportData = [];
 
-    for (const date in workoutHistory) {
-        const currentDate = new Date(date);
-        if (currentDate >= startDate && currentDate <= endDate) {
-            workoutHistory[date].forEach(exercise => {
-                // Рассчитываем показатели для упражнения
-                let setsText = '';
-                let best1RM = 0;
-                let totalVolume = 0;
-                let bestSetIndex = 0;
-                let bestSetValue = 0;
+    // Получаем все записи через DataManager
+    const allEntries = dataManager.getAllEntries();
 
-                exercise.sets.forEach((set, index) => {
-                    // Учитываем флаг "на каждую конечность"
-                    const effectiveWeight = set.perLimb ? set.weight * 2 : set.weight;
+    // Фильтруем записи по типу и дате
+    const filteredEntries = allEntries.filter(entry => {
+        if (entry.type !== 'training' || entry.isDraft) return false;
 
-                    // Рассчитываем 1ПМ для подхода (формула Эпли)
-                    const oneRepMax = effectiveWeight * (1 + set.reps / 30);
+        const entryDate = new Date(entry.date);
+        return entryDate >= startDate && entryDate <= endDate;
+    });
 
-                    // Рассчитываем объем подхода
-                    const setVolume = effectiveWeight * set.reps;
+    // Формируем данные для экспорта
+    filteredEntries.forEach(entry => {
+        const exercise = entry.data;
 
-                    // Форматируем подход
-                    setsText += `Подход ${index + 1}: ${set.weight} кг × ${set.reps}`;
-                    if (set.perLimb) setsText += ' (на каждую конечность)';
-                    setsText += '; ';
+        // Рассчитываем показатели для упражнения
+        let setsText = '';
+        let best1RM = 0;
+        let totalVolume = 0;
+        let bestSetIndex = 0;
+        let bestSetValue = 0;
 
-                    // Обновляем лучшие показатели
-                    if (oneRepMax > best1RM) best1RM = oneRepMax;
-                    totalVolume += setVolume;
+        exercise.sets?.forEach((set, index) => {
+            // Учитываем флаг "на каждую конечность"
+            const effectiveWeight = set.perLimb ? set.weight * 2 : set.weight;
 
-                    // Находим лучший подход (по весу)
-                    if (effectiveWeight > bestSetValue) {
-                        bestSetValue = effectiveWeight;
-                        bestSetIndex = index;
-                    }
-                });
+            // Рассчитываем 1ПМ для подхода (формула Эпли)
+            const oneRepMax = effectiveWeight * (1 + set.reps / 30);
 
-                // Форматируем лучший подход
-                const bestSet = exercise.sets[bestSetIndex];
-                const bestEffectiveWeight = bestSet.perLimb ? bestSet.weight * 2 : bestSet.weight;
-                const bestSetText = `${bestEffectiveWeight} кг × ${bestSet.reps}`;
+            // Рассчитываем объем подхода
+            const setVolume = effectiveWeight * set.reps;
 
-                // Создаем запись для каждого упражнения
-                exportData.push({
-                    Дата: date,
-                    Упражнение: exercise.name,
-                    Подходы: setsText,
-                    'Лучший подход': bestSetText,
-                    '1ПМ (расч.)': best1RM.toFixed(1),
-                    'Общий объем': totalVolume.toFixed(1),
-                    RPE: exercise.rpe || ''
-                });
-            });
+            // Форматируем подход
+            setsText += `Подход ${index + 1}: ${set.weight} кг × ${set.reps}`;
+            if (set.perLimb) setsText += ' (на каждую конечность)';
+            setsText += '; ';
+
+            // Обновляем лучшие показатели
+            if (oneRepMax > best1RM) best1RM = oneRepMax;
+            totalVolume += setVolume;
+
+            // Находим лучший подход (по весу)
+            if (effectiveWeight > bestSetValue) {
+                bestSetValue = effectiveWeight;
+                bestSetIndex = index;
+            }
+        });
+
+        // Форматируем лучший подход
+        const bestSet = exercise.sets?.[bestSetIndex];
+        let bestSetText = '';
+        if (bestSet) {
+            const bestEffectiveWeight = bestSet.perLimb ? bestSet.weight * 2 : bestSet.weight;
+            bestSetText = `${bestEffectiveWeight} кг × ${bestSet.reps}`;
         }
-    }
+
+        // Создаем запись для каждого упражнения
+        exportData.push({
+            Дата: entry.date,
+            Упражнение: exercise.name,
+            Подходы: setsText,
+            'Лучший подход': bestSetText,
+            '1ПМ (расч.)': best1RM.toFixed(1),
+            'Общий объем': totalVolume.toFixed(1),
+            RPE: exercise.rpe || ''
+        });
+    });
 
     return exportData;
 }
@@ -302,10 +304,9 @@ async function handleFileImport(event, dataManager) {
         const dateRegex = /(\d{4})-(\d{2})-(\d{2})/;
 
         jsonData.forEach(row => {
-            const dateMatch = row['Дата']?.match(dateRegex);
-            if (!dateMatch) return;
+            const date = row['Дата'] || '';
 
-            const date = `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`;
+            if (!date) return;
 
             if (isHealthData) {
                 // Преобразование данных дневника
@@ -313,17 +314,17 @@ async function handleFileImport(event, dataManager) {
                     date,
                     type: 'diary',
                     data: {
-                        pulse: row['Пульс'],
-                        sleepDuration: row['Сон'],
-                        energyLevel: row['Уровень энергии'],
-                        weighings: parseWeighings(row['Взвешивания']),
-                        steps: row['Шаги'],
-                        calories: row['Калории'],
-                        alcohol: row['Алкоголь'],
-                        workout: row['Тренировка'],
-                        rpe: row['RPE'],
-                        mood: row['Настроение'],
-                        notes: row['Заметки']
+                        pulse: row['Пульс'] || '',
+                        sleepDuration: row['Сон'] || '',
+                        energyLevel: row['Уровень энергии'] || '',
+                        weighings: parseWeighings(row['Взвешивания'] || ''),
+                        steps: row['Шаги'] || '',
+                        calories: row['Калории'] || '',
+                        alcohol: row['Алкоголь'] || '',
+                        workout: row['Тренировка'] || '',
+                        rpe: row['RPE'] || '',
+                        mood: row['Настроение'] || '',
+                        notes: row['Заметки'] || ''
                     },
                     isDraft: false,
                     version: 1
@@ -334,9 +335,9 @@ async function handleFileImport(event, dataManager) {
                     date,
                     type: 'training',
                     data: {
-                        name: row['Упражнение'],
-                        sets: parseSets(row['Подходы']),
-                        rpe: row['RPE']
+                        name: row['Упражнение'] || '',
+                        sets: parseSets(row['Подходы'] || ''),
+                        rpe: row['RPE'] || ''
                     },
                     isDraft: false,
                     version: 1
@@ -347,15 +348,18 @@ async function handleFileImport(event, dataManager) {
         // Сохранение данных
         dataManager.bulkAddEntries(entries);
         alert(`Успешно импортировано ${entries.length} записей`);
-        loadHistoryData(dataManager);
+
+        // Обновляем UI
+        if (typeof loadHistoryData === 'function') {
+            loadHistoryData(dataManager);
+        }
 
     } catch (error) {
         console.error('Ошибка импорта:', error);
-        alert('Ошибка при обработке файла');
+        alert('Ошибка при обработке файла: ' + error.message);
     }
 }
 
-// Вспомогательные функции парсинга
 function parseWeighings(weighingsText) {
     if (!weighingsText) return [];
 
@@ -363,7 +367,7 @@ function parseWeighings(weighingsText) {
         item = item.trim();
         if (!item) return null;
 
-        // Улучшенное регулярное выражение с обработкой граничных случаев
+        // Улучшенное регулярное выражение
         const match = item.match(/([\d.,]+)\s*кг\s*(?:\((.*?)\))?/);
 
         if (match) {
@@ -375,13 +379,12 @@ function parseWeighings(weighingsText) {
             };
         }
 
-        // Попытка извлечь только число (на случай если нет "кг")
+        // Попытка извлечь только число
         const weightMatch = item.match(/[\d.,]+/);
         return weightMatch ? {
             weight: parseFloat(weightMatch[0].replace(',', '.')),
             condition: ''
         } : null;
-
     }).filter(Boolean);
 }
 
@@ -410,6 +413,5 @@ function parseSets(setsText) {
             reps: parseInt(altMatch[2]),
             perLimb: false
         } : null;
-
     }).filter(Boolean);
 }

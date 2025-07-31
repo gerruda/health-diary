@@ -10,10 +10,6 @@ export function getExercisesList() {
     return list ? JSON.parse(list) : [];
 }
 
-export function saveExercisesList(list) {
-    localStorage.setItem(EXERCISES_KEY, JSON.stringify(list));
-}
-
 export function getSettings() {
     return JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {
         reminderTime: '20:00',

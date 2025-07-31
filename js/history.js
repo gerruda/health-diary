@@ -1,7 +1,7 @@
 import { formatDate, activateTab, confirmAction } from './utils.js';
 import { populateWorkoutForm } from './workout.js';
 import { populateDiaryForm } from './daily-tracker.js';
-import {initExport} from "./export.js";
+import { initExport } from "./export.js";
 
 export function initHistory(dataManager) {
     // Создаем и добавляем блок экспорта
@@ -9,10 +9,12 @@ export function initHistory(dataManager) {
 
     // Переносим блок экспорта в нужное место
     const dataControls = document.getElementById('data-controls');
-    const exportSection = document.getElementById('export-controls');
+    const exportSection = initExport(dataManager);
     if (dataControls && exportSection) {
         dataControls.appendChild(exportSection);
     }
+    const historyTab = document.getElementById('history');
+    historyTab.insertBefore(exportSection, historyTab.firstChild); // Добавляем в начало
 
     // Загрузка истории
     loadHistoryData(dataManager);
