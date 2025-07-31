@@ -29,12 +29,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 .then(registration => {
                     console.log('SW зарегистрирован:', registration);
 
-                    // Принудительное обновление при загрузке
+                    // Инициализируем настройки после регистрации SW
+                    initSettings();
+
+                    // Принудительное обновление
                     registration.update();
                 })
                 .catch(error => {
                     console.error('Ошибка регистрации SW:', error);
                 });
+        });
+    }
+
+// Обработчик сообщений от Service Worker
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('message', event => {
+            if (event.data.type === 'REQUEST_DATA_UPDATE') {
+                // Отправляем актуальные данные в SW
+                const healthData = getHealthData(); // Ваша функция получения данных
+                saveDiaryData(healthData);
+            }
         });
     }
 

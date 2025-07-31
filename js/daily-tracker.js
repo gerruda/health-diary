@@ -1,5 +1,6 @@
 import { getWeightConditions, saveWeightConditions } from './storage.js';
 import { loadHistoryData } from './history.js';
+import { saveDiaryData } from "./settings.js";
 
 let isFormChanged = false;
 let currentDate = '';
@@ -270,6 +271,18 @@ function saveAsRegularEntry(date) {
     if (typeof loadHistoryData === 'function') {
         loadHistoryData(dataManagerInstance);
     }
+
+    // +++ ВЫЗОВ ДЛЯ УВЕДОМЛЕНИЙ +++
+    // Получаем актуальные данные для Service Worker
+    const today = new Date().toISOString().split('T')[0];
+    const hasData = dataManagerInstance.getAllEntries().some(
+        e => e.type === 'diary' &&
+            !e.isDraft &&
+            e.date === today
+    );
+
+    // Сохраняем информацию о наличии данных за сегодня
+    saveDiaryData({ date: today, hasData });
 }
 
 export function loadTodayData(date) {
@@ -507,6 +520,18 @@ function handleDailySubmit(e, date) {
     if (typeof loadHistoryData === 'function') {
         loadHistoryData(dataManagerInstance);
     }
+
+    // +++ ВЫЗОВ ДЛЯ УВЕДОМЛЕНИЙ +++
+    // Получаем актуальные данные для Service Worker
+    const today = new Date().toISOString().split('T')[0];
+    const hasData = dataManagerInstance.getAllEntries().some(
+        e => e.type === 'diary' &&
+            !e.isDraft &&
+            e.date === today
+    );
+
+    // Сохраняем информацию о наличии данных за сегодня
+    saveDiaryData({ date: today, hasData });
 }
 
 function addWeightEntry(weight = '', condition = '') {
