@@ -1,60 +1,91 @@
+import DataManager from './data-manager.js';
 import { initDailyTracker } from './daily-tracker.js';
 import { initWorkoutTracker } from './workout.js';
 import { initHistory } from './history.js';
-import { initAnalytics } from './analytics.js';
+import {initAnalytics, refreshAnalytics} from './analytics.js';
 import { initSettings } from './settings.js';
 import { initExport } from './export.js';
 import { initTabs } from './utils.js';
-import { cleanupExercisesList, cleanupWorkoutHistory, migrateData } from "./storage.js";
 import { initTheme } from './theme.js';
 
-// Форматирование даты (вынесем позже в utils.js)
 function formatDate(date, options) {
     return date.toLocaleDateString('ru-RU', options);
 }
 
-
 document.addEventListener('DOMContentLoaded', () => {
-    // Сначала инициализация вкладок
-    initTabs();
-    migrateData();
-    cleanupWorkoutHistory();
-    cleanupExercisesList();
+    // Инициализация DataManager
+    const dataManager = new DataManager();
 
+    initTabs();
+    setTimeout(refreshAnalytics, 500);
+
+
+    // Регистрация Service Worker
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('service-worker.js').then(reg => {
-            reg.update(); // Принудительное обновление
+        const basePath = location.pathname.split('/').slice(0, -1).join('/') || '/';
+
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register(`${basePath}/service-worker.js`)
+                .then(registration => {
+                    console.log('SW зарегистрирован:', registration);
+
+                    // Инициализируем настройки после регистрации SW
+                    initSettings();
+
+                    // Принудительное обновление
+                    registration.update();
+                })
+                .catch(error => {
+                    console.error('Ошибка регистрации SW:', error);
+                });
         });
     }
 
-    // Затем инициализация всех модулей с проверкой
+// Обработчик сообщений от Service Worker
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('message', event => {
+            if (event.data.type === 'REQUEST_DATA_UPDATE') {
+                // Отправляем актуальные данные в SW
+                const healthData = getHealthData(); // Ваша функция получения данных
+                saveDiaryData(healthData);
+            }
+        });
+    }
+
     try {
         initTheme();
     } catch (e) {
         console.error('Ошибка инициализации темы:', e);
     }
+
     try {
-        initDailyTracker();
+        initDailyTracker(dataManager);
     } catch (e) {
         console.error('Ошибка инициализации ежедневного трекера:', e);
     }
 
     try {
-        initWorkoutTracker();
+        initWorkoutTracker(dataManager); // Также передаем в трекер тренировок
     } catch (e) {
         console.error('Ошибка инициализации трекера тренировок:', e);
     }
 
     try {
-        initHistory();
+        initHistory(dataManager);
     } catch (e) {
         console.error('Ошибка инициализации истории:', e);
     }
 
     try {
-        initAnalytics();
+        initAnalytics(dataManager); // И в аналитику
     } catch (e) {
         console.error('Ошибка инициализации аналитики:', e);
+    }
+
+    try {
+        initExport(dataManager); // И в экспорт
+    } catch (e) {
+        console.error('Ошибка инициализации экспорта:', e);
     }
 
     try {
@@ -63,13 +94,6 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Ошибка инициализации настроек:', e);
     }
 
-    try {
-        initExport();
-    } catch (e) {
-        console.error('Ошибка инициализации экспорта:', e);
-    }
-
-    // Установка текущей даты
     try {
         const today = new Date();
         const currentDateElement = document.getElementById('current-date');
@@ -80,14 +104,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 month: 'long',
                 day: 'numeric'
             });
-        } else {
-            console.warn('Элемент #current-date не найден');
         }
     } catch (e) {
         console.error('Ошибка форматирования даты:', e);
     }
 
-    // Проверяем существование элемента перед установкой интервала
     const timeInput = document.getElementById('entry-time');
     if (timeInput) {
         setInterval(() => {

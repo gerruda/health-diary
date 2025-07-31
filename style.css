@@ -540,3 +540,282 @@ button:hover {
 .remove-cell {
     width: 40px;
 }
+
+/* Переработанные стили для подходов тренировок */
+.approach-row {
+    position: relative;
+    display: block;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 15px;
+    background-color: var(--history-entry-bg);
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.set-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+        "weight reps"
+        "limb limb"
+        "remove remove";
+    gap: 15px;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.input-group.weight {
+    grid-area: weight;
+}
+
+.input-group.reps {
+    grid-area: reps;
+}
+
+.input-group label {
+    font-size: 0.9rem;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 12px;
+    font-size: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background-color: var(--input-bg);
+    color: var(--text-primary);
+}
+
+.per-limb-cell {
+    grid-area: limb;
+    display: flex;
+    align-items: center;
+    padding: 10px 0;
+    min-width: 0; /* Важно для предотвращения переполнения */
+}
+
+.per-limb-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.per-limb-text {
+    margin-left: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.remove-cell {
+    grid-area: remove;
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 5px;
+}
+
+.btn-remove-set {
+    background-color: var(--danger);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 15px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 0.3s;
+    white-space: nowrap;
+}
+
+.btn-remove-set:hover {
+    background-color: #c0392b;
+}
+
+/* Мобильная адаптация */
+@media (max-width: 480px) {
+    .approach-row {
+        padding: 12px;
+    }
+
+    .set-inputs {
+        gap: 12px;
+    }
+
+    .input-group input {
+        padding: 10px;
+        font-size: 1rem;
+    }
+
+    .btn-remove-set {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .btn-remove-set span {
+        display: none;
+    }
+}
+
+/* Планшетная версия */
+@media (min-width: 481px) and (max-width: 767px) {
+    .set-inputs {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+            "weight reps"
+            "limb limb"
+            "remove remove";
+    }
+
+    .btn-remove-set {
+        font-size: 0.85rem;
+        padding: 8px 12px;
+    }
+}
+
+/* Десктопная версия */
+@media (min-width: 768px) {
+    .set-inputs {
+        grid-template-columns: minmax(100px, 1fr) minmax(100px, 1fr) minmax(180px, auto) minmax(140px, auto);
+        grid-template-areas: "weight reps limb remove";
+        align-items: center;
+        gap: 20px;
+    }
+
+    .input-group {
+        min-width: 100px;
+    }
+
+    .per-limb-cell {
+        padding: 0 15px;
+        border-left: 1px solid var(--border-color);
+        border-right: 1px solid var(--border-color);
+        min-width: 180px;
+        max-width: 180px; /* Фиксируем максимальную ширину */
+    }
+
+    .per-limb-label {
+        max-width: 180px;
+    }
+
+    .remove-cell {
+        justify-content: flex-start;
+        min-width: 140px;
+        padding-left: 10px;
+    }
+
+    .btn-remove-set {
+        min-width: 140px;
+    }
+}
+
+.chart-error {
+    color: #e74c3c;
+    padding: 10px;
+    background: #f8d7da;
+    border-radius: 5px;
+    margin-top: 10px;
+    text-align: center;
+}
+
+/* Стили для блока управления данными */
+.data-controls {
+    background: var(--card-bg);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 25px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.form-group {
+    flex: 1;
+    min-width: 200px;
+}
+
+.actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.btn-export, .btn-import {
+    flex: 1;
+    padding: 12px;
+    text-align: center;
+}
+
+/* Адаптивность для блока экспорта */
+@media (max-width: 768px) {
+    .form-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .actions {
+        flex-direction: column;
+    }
+}
+
+/* Добавить в конец файла */
+#export-controls {
+    background: var(--card-bg);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 25px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.form-group {
+    flex: 1;
+    min-width: 200px;
+}
+
+.actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.btn-export, .btn-import {
+    flex: 1;
+    padding: 12px;
+    text-align: center;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .form-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .actions {
+        flex-direction: column;
+    }
+}

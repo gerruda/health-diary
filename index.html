@@ -191,17 +191,27 @@
                     <tbody id="sets-body">
                     <tr>
                         <td class="set-inputs">
-                            <input type="number" class="set-weight" step="0.1" min="0" placeholder="Вес (кг)">
-                            <input type="number" class="set-reps" min="1" placeholder="Повторения">
-                        </td>
-                        <td class="per-limb-cell">
-                            <label class="per-limb-label">
-                                <input type="checkbox" class="set-per-limb">
-                                На каждую конечность
-                            </label>
-                        </td>
-                        <td class="remove-cell">
-                            <button type="button" class="btn-remove-set"><i class="fas fa-times"></i></button>
+                            <div class="input-group weight">
+                                <label>Вес (кг)</label>
+                                <input type="number" class="set-weight" step="0.1" min="0">
+                            </div>
+                            <div class="input-group reps">
+                                <label>Повторения</label>
+                                <input type="number" class="set-reps" min="1">
+                            </div>
+                            <div class="per-limb-cell">
+                                <label class="per-limb-label" title="На каждую конечность">
+                                    <input type="checkbox" class="set-per-limb" }>
+                                    <span class="per-limb-text">На конечность</span>
+                                    <span class="per-limb-icon">⇆</span>
+                                </label>
+                            </div>
+                            <div class="remove-cell">
+                                <button type="button" class="btn-remove-set">
+                                    <i class="fas fa-trash"></i>
+                                    <span>Удалить</span>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     </tbody>
@@ -268,13 +278,10 @@
 
     <!-- Вкладка "История" -->
     <div id="history" class="tab-content">
-        <h2>🗄️ История</h2>
-        <div class="history-controls">
-            <select id="history-date">
-                <option value="all">Все даты</option>
-                <option value="week">Текущая неделя</option>
-            </select>
+        <div id="data-controls" class="data-controls">
+            <!-- Блок экспорта будет вставлен сюда -->
         </div>
+        <h2>🗄️ История</h2>
         <div id="history-list"></div>
     </div>
 
@@ -297,42 +304,16 @@
 
 <script type="module" src="js/main.js"></script>
 <script>
+    // Регистрация Service Worker
     if ('serviceWorker' in navigator) {
-        window.addEventListener('load', async () => {
-            try {
-                const reg = await navigator.serviceWorker.register('service-worker.js');
-                console.log('SW registered:', reg);
-
-                // Проверка обновлений Service Worker
-                reg.onupdatefound = () => {
-                    const newWorker = reg.installing;
-                    newWorker.onstatechange = () => {
-                        if (newWorker.state === 'installed') {
-                            if (navigator.serviceWorker.controller) {
-                                console.log('New content available; please refresh.');
-                            } else {
-                                console.log('Content is cached for offline use.');
-                            }
-                        }
-                    };
-                };
-            } catch (err) {
-                console.error('SW registration failed:', err);
-            }
-        });
+        navigator.serviceWorker.register('/service-worker.js')
+            .then(registration => {
+                console.log('ServiceWorker зарегистрирован:', registration);
+            })
+            .catch(error => {
+                console.log('Ошибка регистрации ServiceWorker:', error);
+            });
     }
-
-    window.addEventListener('beforeinstallprompt', e => {
-        e.preventDefault();
-        const installBtn = document.createElement('button');
-        installBtn.textContent = 'Установить приложение';
-        installBtn.className = 'install-button';
-        installBtn.onclick = () => {
-            e.prompt();
-            installBtn.remove();
-        };
-        document.body.appendChild(installBtn);
-    });
 </script>
 </body>
 </html>

@@ -1,15 +1,12 @@
-import {
-    getExercisesList,
-    getWorkoutHistory,
-    saveWorkoutHistory,
-    saveExercisesList
-} from './storage.js';
+import { getExercisesList } from './storage.js';
 import { loadHistoryData } from "./history.js";
 
-let setCount = 0;
+let dataManagerInstance;
 
-export function initWorkoutTracker() {
+export function initWorkoutTracker(dataManager) {
     initExercisesList();
+    dataManagerInstance = dataManager;
+
 
     const workoutForm = document.getElementById('workout-form');
     if (!workoutForm) return;
@@ -34,8 +31,13 @@ export function initWorkoutTracker() {
 
     // Добавляем обработчик для удаления подходов
     document.getElementById('sets-body')?.addEventListener('click', (e) => {
-        if (e.target.classList.contains('btn-remove-set')) {
-            e.target.closest('tr').remove();
+        if (e.target.closest('.btn-remove-set')) {
+            const row = e.target.closest('tr');
+            row.classList.add('removing');
+
+            setTimeout(() => {
+                row.remove();
+            }, 300);
         }
     });
 
@@ -53,18 +55,21 @@ export function initWorkoutTracker() {
 // Загрузка и отображение упражнений за сегодня
 function loadTodayExercises() {
     const today = new Date().toISOString().split('T')[0];
-    const workoutHistory = getWorkoutHistory();
-    const todayExercises = workoutHistory[today] || [];
-    const container = document.getElementById('exercises-list');
 
-    if (!container) {
-        console.error('Контейнер exercises-list не найден!');
-        return;
-    }
+    // Получаем записи через DataManager
+    const todayEntries = dataManagerInstance.getAllEntries()
+        .filter(entry =>
+            entry.type === 'training' &&
+            entry.date === today &&
+            !entry.isDraft
+        );
+
+    const container = document.getElementById('exercises-list');
+    if (!container) return;
 
     container.innerHTML = '';
 
-    if (todayExercises.length === 0) {
+    if (todayEntries.length === 0) {
         container.innerHTML = '<p>Сегодня еще не добавлено ни одного упражнения</p>';
         return;
     }
@@ -76,7 +81,8 @@ function loadTodayExercises() {
     const list = document.createElement('ul');
     list.className = 'today-exercises-list';
 
-    todayExercises.forEach(exercise => {
+    todayEntries.forEach(entry => {
+        const exercise = entry.data;
         const item = document.createElement('li');
         item.className = 'today-exercise-item';
 
@@ -88,7 +94,7 @@ function loadTodayExercises() {
         item.innerHTML = `
             <div class="exercise-header">
                 <strong>${exercise.name}</strong>
-                <button class="btn-edit-exercise" data-id="${exercise.id}">✏️</button>
+                <button class="btn-edit-exercise" data-id="${entry.id}">✏️</button>
             </div>
             <div class="exercise-sets">${setsInfo}</div>
             ${exercise.rpe ? `<div>RPE: ${exercise.rpe}</div>` : ''}
@@ -99,17 +105,15 @@ function loadTodayExercises() {
 
     container.appendChild(list);
 
-    // Добавляем обработчики для кнопок редактирования
+    // Обработчики для кнопок редактирования
     container.querySelectorAll('.btn-edit-exercise').forEach(btn => {
         btn.addEventListener('click', () => {
             const id = btn.dataset.id;
-            const exercise = todayExercises.find(ex => ex.id == id);
-            if (exercise) {
-                populateWorkoutForm(exercise);
-                // Устанавливаем флаг редактирования
-                document.getElementById('workout-form').dataset.editing = `${today}|${id}`;
+            const entry = todayEntries.find(entry => entry.id == id);
 
-                // Прокручиваем к форме
+            if (entry) {
+                populateWorkoutForm(entry);
+                document.getElementById('workout-form').dataset.editing = `${entry.date}|${entry.id}`;
                 document.getElementById('workout-form').scrollIntoView();
             }
         });
@@ -117,7 +121,8 @@ function loadTodayExercises() {
 }
 
 // Заполнение формы тренировки
-export function populateWorkoutForm(exercise) {
+export function populateWorkoutForm(entry) {
+    const exercise = entry.data;
     // Обновляем заголовок при редактировании
     const workoutTitle = document.getElementById('workout-title');
     if (workoutTitle) {
@@ -137,35 +142,42 @@ export function populateWorkoutForm(exercise) {
 
         exercise.sets.forEach((set) => {
             const row = document.createElement('tr');
+            row.className = 'approach-row';
+
+            // Исправляем значения для валидации
+            const weightValue = (set.weight !== undefined && set.weight !== null) ? set.weight : '';
+            const repsValue = (set.reps !== undefined && set.reps !== null) ? set.reps : '';
+
             row.innerHTML = `
     <td class="set-inputs">
-        <div class="input-group">
+        <div class="input-group weight">
             <label>Вес (кг)</label>
             <input type="number" class="set-weight" step="0.1" min="0" 
-                   value="${set.weight || ''}">
+                   value="${weightValue}">
         </div>
-        <div class="input-group">
+        <div class="input-group reps">
             <label>Повторения</label>
             <input type="number" class="set-reps" min="1" 
-                   value="${set.reps || ''}">
+                   value="${repsValue}">
         </div>
-    </td>
-    <td class="per-limb-cell">
-        <label class="per-limb-label" title="На каждую конечность">
-            <input type="checkbox" class="set-per-limb" ${set.perLimb ? 'checked' : ''}>
-            <span class="per-limb-icon">⇆</span>
-        </label>
-    </td>
-    <td class="remove-cell">
-        <button type="button" class="btn-remove-set"><i class="fas fa-times"></i></button>
+        <div class="per-limb-cell">
+            <label class="per-limb-label" title="На каждую конечность">
+                <input type="checkbox" class="set-per-limb" ${set.perLimb ? 'checked' : ''}>
+                <span class="per-limb-text">На конечность</span>
+                <span class="per-limb-icon">⇆</span>
+            </label>
+        </div>
+        <div class="remove-cell">
+            <button type="button" class="btn-remove-set">
+                <i class="fas fa-trash"></i>
+                <span>Удалить</span>
+            </button>
+        </div>
     </td>
 `;
             setsContainer.appendChild(row);
         });
     }
-
-    // Обновляем счетчик подходов
-    setCount = exercise.sets.length;
 }
 
 export function initExercisesList() {
@@ -206,28 +218,37 @@ function addSetRow() {
         if (perLimbCheckbox) lastPerLimb = perLimbCheckbox.checked;
     }
 
+    // Исправляем значения для пустых строк
+    if (lastWeight === '') lastWeight = '';
+    if (lastReps === '') lastReps = '';
+
     const row = document.createElement('tr');
+    row.className = 'approach-row';
     row.innerHTML = `
     <td class="set-inputs">
-        <div class="input-group">
+        <div class="input-group weight">
             <label>Вес (кг)</label>
             <input type="number" class="set-weight" step="0.1" min="0" 
-                   value="${set.weight || ''}">
+                   value="${lastWeight}">
         </div>
-        <div class="input-group">
+        <div class="input-group reps">
             <label>Повторения</label>
             <input type="number" class="set-reps" min="1" 
-                   value="${set.reps || ''}">
+                   value="${lastReps}">
         </div>
-    </td>
-    <td class="per-limb-cell">
-        <label class="per-limb-label" title="На каждую конечность">
-            <input type="checkbox" class="set-per-limb" ${set.perLimb ? 'checked' : ''}>
-            <span class="per-limb-icon">⇆</span>
-        </label>
-    </td>
-    <td class="remove-cell">
-        <button type="button" class="btn-remove-set"><i class="fas fa-times"></i></button>
+        <div class="per-limb-cell">
+            <label class="per-limb-label" title="На каждую конечность">
+                <input type="checkbox" class="set-per-limb" ${lastPerLimb ? 'checked' : ''}>
+                <span class="per-limb-text">На конечность</span>
+                <span class="per-limb-icon">⇆</span>
+            </label>
+        </div>
+        <div class="remove-cell">
+            <button type="button" class="btn-remove-set">
+                <i class="fas fa-trash"></i>
+                <span>Удалить</span>
+            </button>
+        </div>
     </td>
 `;
     tbody.appendChild(row);
@@ -235,120 +256,6 @@ function addSetRow() {
     // Фокус на поле веса нового подхода
     const newWeightInput = row.querySelector('.set-weight');
     if (newWeightInput) newWeightInput.focus();
-}
-
-// Обновленная функция сохранения тренировки
-function saveWorkout(e) {
-    e.preventDefault();
-
-    const workoutHistory = getWorkoutHistory();
-    const date = new Date().toISOString().split('T')[0];
-    const exerciseName = document.getElementById('exercise-name').value.trim();
-    const rpeInput = document.getElementById('workout-rpe');
-
-    // Проверка названия упражнения
-    if (!exerciseName) {
-        alert('Введите название упражнения!');
-        return;
-    }
-
-    // Собираем данные о подходах
-    const setsData = [];
-    const setRows = document.querySelectorAll('#sets-body tr');
-    let hasInvalidSets = false;
-
-    setRows.forEach(row => {
-        const weightInput = row.querySelector('.set-weight');
-        const repsInput = row.querySelector('.set-reps');
-        const perLimbCheckbox = row.querySelector('.set-per-limb');
-
-        // Разрешаем вес 0 для упражнений без дополнительного веса
-        if (weightInput && repsInput && repsInput.value) {
-            const weightValue = parseFloat(weightInput.value) || 0;
-
-            setsData.push({
-                weight: weightValue,
-                reps: parseInt(repsInput.value),
-                perLimb: perLimbCheckbox ? perLimbCheckbox.checked : false
-            });
-        } else if (repsInput && !repsInput.value) {
-            hasInvalidSets = true;
-        }
-    });
-
-    if (setsData.length === 0) {
-        if (hasInvalidSets) {
-            alert('Заполните поле "Повторения" во всех подходах!');
-        } else {
-            alert('Добавьте хотя бы один подход!');
-        }
-        return;
-    }
-
-    // Проверяем, редактируем ли существующее упражнение
-    const editingFlag = e.target.dataset.editing;
-    let exerciseData;
-
-    if (editingFlag) {
-        const [editDate, editId] = editingFlag.split('|');
-
-        // Находим существующее упражнение
-        const existingExercise = workoutHistory[editDate]?.find(item => item.id == editId);
-
-        // Создаем обновленные данные с сохранением ID
-        exerciseData = {
-            id: existingExercise.id, // Сохраняем оригинальный ID
-            name: exerciseName,
-            rpe: rpeInput?.value || null,
-            sets: setsData
-        };
-
-        // Обновляем запись
-        if (workoutHistory[editDate]) {
-            const index = workoutHistory[editDate].findIndex(item => item.id == editId);
-            if (index !== -1) {
-                workoutHistory[editDate][index] = exerciseData;
-            } else {
-                workoutHistory[editDate].push(exerciseData);
-            }
-        } else {
-            workoutHistory[editDate] = [exerciseData];
-        }
-
-        // Сбрасываем флаг редактирования
-        delete e.target.dataset.editing;
-    } else {
-        // Новое упражнение
-        exerciseData = {
-            id: Date.now(), // Генерируем новый ID
-            name: exerciseName,
-            rpe: rpeInput?.value || null,
-            sets: setsData
-        };
-
-        if (!workoutHistory[date]) workoutHistory[date] = [];
-        workoutHistory[date].push(exerciseData);
-
-        // Добавляем упражнение в список, если его там нет
-        const exercisesList = getExercisesList();
-        if (!exercisesList.includes(exerciseName)) {
-            exercisesList.push(exerciseName);
-            saveExercisesList(exercisesList);
-            initExercisesList();
-        }
-    }
-
-    saveWorkoutHistory(workoutHistory);
-    alert('Упражнение успешно сохранено!');
-    clearWorkoutForm();
-
-    // Обновляем список упражнений за сегодня
-    loadTodayExercises();
-
-    // Обновляем историю
-    if (typeof loadHistoryData === 'function') {
-        loadHistoryData();
-    }
 }
 
 function clearWorkoutForm() {
@@ -371,4 +278,94 @@ function clearWorkoutForm() {
 
     // Сбрасываем флаг редактирования
     delete document.getElementById('workout-form').dataset.editing;
+}
+
+function saveWorkout(e) {
+    e.preventDefault();
+
+    const today = new Date().toISOString().split('T')[0];
+    const exerciseName = document.getElementById('exercise-name').value.trim();
+    const rpeInput = document.getElementById('workout-rpe');
+
+    // Проверка названия
+    if (!exerciseName) {
+        alert('Введите название упражнения!');
+        return;
+    }
+
+    // Собираем данные о подходах
+    const setsData = [];
+    const setRows = document.querySelectorAll('#sets-body tr');
+    let hasInvalidSets = false;
+
+    setRows.forEach(row => {
+        const weightInput = row.querySelector('.set-weight');
+        const repsInput = row.querySelector('.set-reps');
+        const perLimbCheckbox = row.querySelector('.set-per-limb');
+
+        if (weightInput && repsInput && repsInput.value) {
+            setsData.push({
+                weight: parseFloat(weightInput.value) || 0,
+                reps: parseInt(repsInput.value),
+                perLimb: perLimbCheckbox ? perLimbCheckbox.checked : false
+            });
+        } else if (repsInput && !repsInput.value) {
+            hasInvalidSets = true;
+        }
+    });
+
+    if (setsData.length === 0) {
+        alert(hasInvalidSets
+            ? 'Заполните поле "Повторения" во всех подходах!'
+            : 'Добавьте хотя бы один подход!');
+        return;
+    }
+
+    // Проверяем режим редактирования
+    const editingFlag = e.target.dataset.editing;
+    let exerciseData;
+    let entryDate = today;
+
+    if (editingFlag) {
+        const [editDate, editId] = editingFlag.split('|');
+        entryDate = editDate;
+
+        // Получаем существующую запись
+        const existingEntry = dataManagerInstance.getAllEntries().find(
+            e => e.id == editId && e.date === editDate
+        );
+
+        if (!existingEntry) {
+            alert('Ошибка: запись для редактирования не найдена');
+            return;
+        }
+
+        // Обновляем данные
+        exerciseData = {
+            ...existingEntry.data,
+            name: exerciseName,
+            rpe: rpeInput?.value || null,
+            sets: setsData
+        };
+    } else {
+        // Новая запись
+        exerciseData = {
+            id: Date.now().toString(),
+            name: exerciseName,
+            rpe: rpeInput?.value || null,
+            sets: setsData
+        };
+    }
+
+    // Сохраняем через DataManager
+    dataManagerInstance.saveEntry('training', entryDate, exerciseData, false);
+
+    alert('Упражнение успешно сохранено!');
+    clearWorkoutForm();
+    loadTodayExercises();
+
+    // Обновляем историю
+    if (typeof loadHistoryData === 'function') {
+        loadHistoryData(dataManagerInstance);
+    }
 }
