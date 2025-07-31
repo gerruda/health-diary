@@ -153,4 +153,15 @@ export default class DataManager extends EventEmitter {
         sessionStorage.setItem(DRAFTS_KEY, JSON.stringify(filtered));
         this.emit('draft-deleted', date);
     }
+
+    bulkAddEntries(entries) {
+        entries.forEach(entry => {
+            const existing = this.getEntry(entry.id);
+            if (existing) {
+                this.updateEntry(entry.id, entry.data);
+            } else {
+                this.addEntry(entry);
+            }
+        });
+    }
 }

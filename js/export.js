@@ -1,52 +1,96 @@
-export function initExport() {
+import {loadHistoryData} from "./history.js";
+
+export function initExport(dataManager) {
     const exportSection = document.createElement('div');
     exportSection.id = 'export-controls';
     exportSection.innerHTML = `
-        <h3>Экспорт данных</h3>
-        <div class="form-group">
-            <label for="export-type">Тип данных:</label>
-            <select id="export-type">
-                <option value="health">Дневник здоровья</option>
-                <option value="workout">Тренировки</option>
-            </select>
+        <h3><i class="fas fa-database"></i> Управление данными</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="export-type"><i class="fas fa-file-export"></i> Тип данных:</label>
+                <select id="export-type">
+                    <option value="health">Дневник здоровья</option>
+                    <option value="workout">Тренировки</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="export-range"><i class="fas fa-calendar"></i> Период:</label>
+                <select id="export-range">
+                    <option value="current-week">Текущая неделя</option>
+                    <option value="last-week">Прошлая неделя</option>
+                    <option value="all">Все данные</option>
+                    <option value="custom">Выбрать период</option>
+                </select>
+            </div>
         </div>
         
-        <div class="form-group">
-            <label for="export-range">Период:</label>
-            <select id="export-range">
-                <option value="current-week">Текущая неделя</option>
-                <option value="last-week">Прошлая неделя</option>
-                <option value="all">Все данные</option>
-                <option value="custom">Выбрать период</option>
-            </select>
-        </div>
-        
-        <div id="custom-dates" class="form-group" style="display: none;">
-            <div>
+        <div id="custom-dates" class="form-row" style="display: none;">
+            <div class="form-group">
                 <label for="start-date">Начальная дата:</label>
                 <input type="date" id="start-date">
             </div>
-            <div>
+            <div class="form-group">
                 <label for="end-date">Конечная дата:</label>
                 <input type="date" id="end-date">
             </div>
         </div>
         
-        <button id="export-btn" class="btn-export">Экспорт в Excel</button>
+        <div class="actions">
+            <button id="export-btn" class="btn btn-export">
+                <i class="fas fa-file-excel"></i> Экспорт в Excel
+            </button>
+            <button id="import-btn" class="btn btn-import">
+                <i class="fas fa-file-import"></i> Импорт данных
+            </button>
+            <input type="file" id="import-file" accept=".xlsx,.xls" style="display: none;">
+        </div>
     `;
 
-    const historyTab = document.getElementById('history');
+    // Обработчики событий
     document.getElementById('export-range')?.addEventListener('change', function() {
         document.getElementById('custom-dates').style.display =
-            this.value === 'custom' ? 'block' : 'none';
+            this.value === 'custom' ? 'flex' : 'none';
     });
 
-    document.getElementById('export-btn')?.addEventListener('click', exportToExcel);
+    document.getElementById('export-btn')?.addEventListener('click', () =>
+        exportToExcel(dataManager)
+    );
 
-    if (historyTab) {
-        historyTab.appendChild(exportSection);
-    }
+    document.getElementById('import-btn')?.addEventListener('click', () => {
+        document.getElementById('import-file').click();
+    });
+
+    document.getElementById('import-file')?.addEventListener('change', (e) =>
+        handleFileImport(e, dataManager)
+    );
 }
+
+export function initHistory(dataManager) {
+    loadHistoryData(dataManager);
+
+    // Обработчики для элементов экспорта
+    document.getElementById('export-range')?.addEventListener('change', () =>
+        loadHistoryData(dataManager)
+    );
+
+    document.getElementById('start-date')?.addEventListener('change', () =>
+        loadHistoryData(dataManager)
+    );
+
+    document.getElementById('end-date')?.addEventListener('change', () =>
+        loadHistoryData(dataManager)
+    );
+
+    // Обработчики для обновлений данных
+    dataManager.on('entry-updated', () => loadHistoryData(dataManager));
+    dataManager.on('entry-deleted', () => loadHistoryData(dataManager));
+}
+
+//     if (historyTab) {
+//         historyTab.appendChild(exportSection);
+//     }
+// }
 
 function exportToExcel() {
     if (typeof XLSX === 'undefined') {
@@ -228,4 +272,144 @@ function prepareWorkoutData(range) {
     }
 
     return exportData;
+}
+
+async function handleFileImport(event, dataManager) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+        const workbook = XLSX.read(await file.arrayBuffer());
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+
+        if (jsonData.length === 0) {
+            alert('Файл не содержит данных для импорта');
+            return;
+        }
+
+        // Определяем тип данных по структуре
+        const isHealthData = 'Пульс' in jsonData[0];
+        const isWorkoutData = 'Упражнение' in jsonData[0];
+
+        if (!isHealthData && !isWorkoutData) {
+            alert('Неподдерживаемый формат данных');
+            return;
+        }
+
+        // Преобразование данных
+        const entries = [];
+        const dateRegex = /(\d{4})-(\d{2})-(\d{2})/;
+
+        jsonData.forEach(row => {
+            const dateMatch = row['Дата']?.match(dateRegex);
+            if (!dateMatch) return;
+
+            const date = `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`;
+
+            if (isHealthData) {
+                // Преобразование данных дневника
+                entries.push({
+                    date,
+                    type: 'diary',
+                    data: {
+                        pulse: row['Пульс'],
+                        sleepDuration: row['Сон'],
+                        energyLevel: row['Уровень энергии'],
+                        weighings: parseWeighings(row['Взвешивания']),
+                        steps: row['Шаги'],
+                        calories: row['Калории'],
+                        alcohol: row['Алкоголь'],
+                        workout: row['Тренировка'],
+                        rpe: row['RPE'],
+                        mood: row['Настроение'],
+                        notes: row['Заметки']
+                    },
+                    isDraft: false,
+                    version: 1
+                });
+            } else {
+                // Преобразование данных тренировок
+                entries.push({
+                    date,
+                    type: 'training',
+                    data: {
+                        name: row['Упражнение'],
+                        sets: parseSets(row['Подходы']),
+                        rpe: row['RPE']
+                    },
+                    isDraft: false,
+                    version: 1
+                });
+            }
+        });
+
+        // Сохранение данных
+        dataManager.bulkAddEntries(entries);
+        alert(`Успешно импортировано ${entries.length} записей`);
+        loadHistoryData(dataManager);
+
+    } catch (error) {
+        console.error('Ошибка импорта:', error);
+        alert('Ошибка при обработке файла');
+    }
+}
+
+// Вспомогательные функции парсинга
+function parseWeighings(weighingsText) {
+    if (!weighingsText) return [];
+
+    return weighingsText.split(';').map(item => {
+        item = item.trim();
+        if (!item) return null;
+
+        // Улучшенное регулярное выражение с обработкой граничных случаев
+        const match = item.match(/([\d.,]+)\s*кг\s*(?:\((.*?)\))?/);
+
+        if (match) {
+            // Замена запятых на точки для чисел
+            const weightValue = parseFloat(match[1].replace(',', '.'));
+            return {
+                weight: weightValue,
+                condition: match[2] || ''
+            };
+        }
+
+        // Попытка извлечь только число (на случай если нет "кг")
+        const weightMatch = item.match(/[\d.,]+/);
+        return weightMatch ? {
+            weight: parseFloat(weightMatch[0].replace(',', '.')),
+            condition: ''
+        } : null;
+
+    }).filter(Boolean);
+}
+
+function parseSets(setsText) {
+    if (!setsText) return [];
+
+    return setsText.split(';').map(item => {
+        item = item.trim();
+        if (!item) return null;
+
+        // Улучшенное регулярное выражение
+        const match = item.match(/(?:Подход\s*\d+:\s*)?([\d.,]+)\s*кг?\s*[×x]\s*(\d+)(\s*на конечность)?/i);
+
+        if (match) {
+            return {
+                weight: parseFloat(match[1].replace(',', '.')),
+                reps: parseInt(match[2]),
+                perLimb: !!match[3]
+            };
+        }
+
+        // Альтернативные форматы
+        const altMatch = item.match(/([\d.,]+)\s*\/\s*(\d+)/);
+        return altMatch ? {
+            weight: parseFloat(altMatch[1].replace(',', '.')),
+            reps: parseInt(altMatch[2]),
+            perLimb: false
+        } : null;
+
+    }).filter(Boolean);
 }

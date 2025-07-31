@@ -1,28 +1,94 @@
 import { formatDate, activateTab, confirmAction } from './utils.js';
 import { populateWorkoutForm } from './workout.js';
-import { populateDiaryForm } from './daily-tracker.js'; // Исправлен импорт
+import { populateDiaryForm } from './daily-tracker.js';
+import {initExport} from "./export.js";
 
 export function initHistory(dataManager) {
+    // Создаем и добавляем блок экспорта
+    initExport(dataManager);
+
+    // Переносим блок экспорта в нужное место
+    const dataControls = document.getElementById('data-controls');
+    const exportSection = document.getElementById('export-controls');
+    if (dataControls && exportSection) {
+        dataControls.appendChild(exportSection);
+    }
+
+    // Загрузка истории
     loadHistoryData(dataManager);
-    document.getElementById('history-date')?.addEventListener('change', () => loadHistoryData(dataManager));
 
     // Обработчики событий
+    document.getElementById('export-range')?.addEventListener('change', () => loadHistoryData(dataManager));
+    document.getElementById('start-date')?.addEventListener('change', () => loadHistoryData(dataManager));
+    document.getElementById('end-date')?.addEventListener('change', () => loadHistoryData(dataManager));
+
     dataManager.on('entry-updated', () => loadHistoryData(dataManager));
     dataManager.on('entry-deleted', () => loadHistoryData(dataManager));
 }
 
 export function loadHistoryData(dataManager) {
     const historyList = document.getElementById('history-list');
-    const dateFilter = document.getElementById('history-date')?.value;
+    const historyTab = document.getElementById('history');
 
-    if (!historyList) return;
+    if (!historyList || !historyTab) return;
 
+    // Очистка предыдущих данных
     historyList.innerHTML = '';
 
-    // Получаем и группируем записи
-    const allEntries = dataManager.getAllEntries().filter(entry => !entry.isDraft);
-    const entriesByDate = {};
+    // Получаем выбранный период из блока экспорта
+    const rangeSelector = document.getElementById('export-range');
+    const range = rangeSelector ? rangeSelector.value : 'all';
 
+    // Получаем пользовательские даты, если выбраны
+    let startDate, endDate;
+    if (range === 'custom') {
+        const startInput = document.getElementById('start-date');
+        const endInput = document.getElementById('end-date');
+
+        startDate = startInput?.value ? new Date(startInput.value) : null;
+        endDate = endInput?.value ? new Date(endInput.value) : null;
+
+        // Корректировка времени для правильного сравнения
+        if (startDate) startDate.setHours(0, 0, 0, 0);
+        if (endDate) endDate.setHours(23, 59, 59, 999);
+    }
+
+    // Получаем и фильтруем записи
+    const allEntries = dataManager.getAllEntries().filter(entry => {
+        if (!entry.date || entry.isDraft) return false;
+
+        const entryDate = new Date(entry.date);
+        entryDate.setHours(12, 0, 0, 0); // Нормализация времени
+
+        // Фильтрация по периоду
+        switch (range) {
+            case 'current-week':
+                const today = new Date();
+                const startOfWeek = new Date(today);
+                startOfWeek.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
+                startOfWeek.setHours(0, 0, 0, 0);
+                return entryDate >= startOfWeek;
+
+            case 'last-week':
+                const lastWeekStart = new Date();
+                lastWeekStart.setDate(lastWeekStart.getDate() - lastWeekStart.getDay() - 6);
+                lastWeekStart.setHours(0, 0, 0, 0);
+                const lastWeekEnd = new Date(lastWeekStart);
+                lastWeekEnd.setDate(lastWeekStart.getDate() + 6);
+                lastWeekEnd.setHours(23, 59, 59, 999);
+                return entryDate >= lastWeekStart && entryDate <= lastWeekEnd;
+
+            case 'custom':
+                if (!startDate || !endDate) return true;
+                return entryDate >= startDate && entryDate <= endDate;
+
+            default: // 'all'
+                return true;
+        }
+    });
+
+    // Группировка записей по дате
+    const entriesByDate = {};
     allEntries.forEach(entry => {
         if (!entriesByDate[entry.date]) {
             entriesByDate[entry.date] = { diary: [], training: [] };
@@ -35,52 +101,55 @@ export function loadHistoryData(dataManager) {
         }
     });
 
-    // Фильтрация и сортировка
-    let dates = Object.keys(entriesByDate);
-    if (dateFilter === 'week') {
-        const today = new Date();
-        const startOfWeek = new Date(today);
-        startOfWeek.setDate(today.getDate() - today.getDay());
-        dates = dates.filter(date => new Date(date) >= startOfWeek);
-    }
-    dates.sort((a, b) => new Date(b) - new Date(a));
+    // Сортировка дат (от новых к старым)
+    const dates = Object.keys(entriesByDate).sort((a, b) =>
+        new Date(b).getTime() - new Date(a).getTime()
+    );
 
+    // Отображение результатов
     if (dates.length === 0) {
-        historyList.innerHTML = '<p>История записей пока пуста</p>';
+        historyList.innerHTML = '<div class="empty-history">История записей пуста для выбранного периода</div>';
         return;
     }
 
-    // Отображение записей
+    // Создаем элементы для каждой даты
     dates.forEach(date => {
+        const dateSection = document.createElement('div');
+        dateSection.className = 'history-date-section';
+
         const dateHeader = document.createElement('h3');
+        dateHeader.className = 'history-date-header';
         dateHeader.textContent = formatDate(new Date(date), {
             weekday: 'long',
             year: 'numeric',
             month: 'long',
             day: 'numeric'
         });
-        historyList.appendChild(dateHeader);
+        dateSection.appendChild(dateHeader);
 
-        // Дневные записи
+        // Добавляем дневные записи
         if (entriesByDate[date].diary.length > 0) {
             entriesByDate[date].diary.forEach(entry => {
-                historyList.appendChild(createDiaryEntryElement(entry, date));
+                dateSection.appendChild(createDiaryEntryElement(entry, date));
             });
         }
 
-        // Тренировки
+        // Добавляем тренировки
         if (entriesByDate[date].training.length > 0) {
             const workoutHeader = document.createElement('h4');
-            workoutHeader.textContent = 'Тренировки';
             workoutHeader.className = 'workout-header';
-            historyList.appendChild(workoutHeader);
+            workoutHeader.textContent = 'Тренировки';
+            dateSection.appendChild(workoutHeader);
 
             entriesByDate[date].training.forEach(entry => {
-                historyList.appendChild(createTrainingEntryElement(entry));
+                dateSection.appendChild(createTrainingEntryElement(entry));
             });
         }
+
+        historyList.appendChild(dateSection);
     });
 
+    // Обновляем обработчики событий
     setupEntryEventHandlers(dataManager);
 }
 

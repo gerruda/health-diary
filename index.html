@@ -193,13 +193,11 @@
                         <td class="set-inputs">
                             <div class="input-group weight">
                                 <label>Вес (кг)</label>
-                                <input type="number" class="set-weight" step="0.1" min="0"
-                                       value="${set.weight || ''}">
+                                <input type="number" class="set-weight" step="0.1" min="0">
                             </div>
                             <div class="input-group reps">
                                 <label>Повторения</label>
-                                <input type="number" class="set-reps" min="1"
-                                       value="${set.reps || ''}">
+                                <input type="number" class="set-reps" min="1">
                             </div>
                             <div class="per-limb-cell">
                                 <label class="per-limb-label" title="На каждую конечность">
@@ -280,13 +278,10 @@
 
     <!-- Вкладка "История" -->
     <div id="history" class="tab-content">
-        <h2>🗄️ История</h2>
-        <div class="history-controls">
-            <select id="history-date">
-                <option value="all">Все даты</option>
-                <option value="week">Текущая неделя</option>
-            </select>
+        <div id="data-controls" class="data-controls">
+            <!-- Блок экспорта будет вставлен сюда -->
         </div>
+        <h2>🗄️ История</h2>
         <div id="history-list"></div>
     </div>
 
