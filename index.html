@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-trendline"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script type="module" src="js/utils.js"></script>
     <script type="module" src="js/storage.js"></script>
@@ -19,7 +21,24 @@
     <script type="module" src="js/main.js"></script>
     <script type="module" src="js/theme.js"></script>
     <script type="module" src="service-worker.js"></script>
+    <script type="module">
+        // Инициализация после загрузки страницы
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Создаем экземпляр DataManager
+            const dataManager = new DataManager();
+            await dataManager.init();
 
+            // Инициализируем аналитику
+            if (typeof initAnalytics === 'function') {
+                initAnalytics(dataManager);
+            }
+
+            // Показываем вкладку аналитики при открытии
+            document.getElementById('analytics').addEventListener('click', () => {
+                refreshAnalytics();
+            });
+        });
+    </script>
     <!-- Favicon -->
     <!-- Основная favicon для всех браузеров -->
     <link rel="icon" href="favicon.ico" type="image/x-icon">
@@ -235,7 +254,16 @@
     <!-- Вкладка "Аналитика" -->
     <div class="tab-content" id="analytics">
         <h2>📊 Аналитика</h2>
+<!--        <div class="chart-container">-->
+<!--            <canvas id="weight-chart"></canvas>-->
+<!--        </div>-->
         <div class="chart-container">
+            <h3>График веса</h3>
+            <div class="period-selector">
+                <label><input type="radio" name="weight-period" value="all" checked> Все время</label>
+                <label><input type="radio" name="weight-period" value="3months"> 3 месяца</label>
+                <label><input type="radio" name="weight-period" value="1month"> 1 месяц</label>
+            </div>
             <canvas id="weight-chart"></canvas>
         </div>
         <div class="chart-container">
