@@ -1,0 +1,16 @@
+{
+  "name": "health-diary",
+  "version": "1.0.0",
+  "description": "This project was bootstrapped with [Create React App111](https://github.com/facebook/create-react-app).",
+  "main": "index.js",
+  "scripts": {
+    "start": "http-server",
+    "test": "playwright test"
+  },  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.54.1",
+    "@types/node": "^24.1.0"
+  }
+}
