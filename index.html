@@ -21,24 +21,6 @@
     <script type="module" src="js/main.js"></script>
     <script type="module" src="js/theme.js"></script>
     <script type="module" src="service-worker.js"></script>
-    <script type="module">
-        // Инициализация после загрузки страницы
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Создаем экземпляр DataManager
-            const dataManager = new DataManager();
-            await dataManager.init();
-
-            // Инициализируем аналитику
-            if (typeof initAnalytics === 'function') {
-                initAnalytics(dataManager);
-            }
-
-            // Показываем вкладку аналитики при открытии
-            document.getElementById('analytics').addEventListener('click', () => {
-                refreshAnalytics();
-            });
-        });
-    </script>
     <!-- Favicon -->
     <!-- Основная favicon для всех браузеров -->
     <link rel="icon" href="favicon.ico" type="image/x-icon">
